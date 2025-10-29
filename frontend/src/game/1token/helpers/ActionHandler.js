@@ -142,11 +142,11 @@ export const ActionHandler = (scene) => {
       goti.originalY = step.y;
       scene.tweens.add({
         targets: goti,
-        scaleX: { value: 1.35, duration: 60, yoyo: true },
-        scaleY: { value: 1.35, duration: 60, yoyo: true },
+        scaleX: { value: 1.35, duration: 90, yoyo: true },
+        scaleY: { value: 1.35, duration: 90, yoyo: true },
         x: step.x,
         y: step.y,
-        duration: 120,
+        duration: 180,
         ease: "Quad.easeOut",
         onComplete: () => {
           goti.setScale(1);
@@ -155,7 +155,7 @@ export const ActionHandler = (scene) => {
       });
 
       stepCount++;
-    }, 130);
+    }, 190);
   });
 
   scene.socket.on("_goti_", (res) => {
