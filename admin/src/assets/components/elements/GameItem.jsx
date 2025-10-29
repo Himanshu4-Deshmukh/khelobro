@@ -29,7 +29,8 @@ export const GameItem = ({ game }) => {
               </select>
             </div>
 
-            {game.title == "Classic Online" && (
+            {(game.title == "Classic Online" ||
+              game.title == "Classic Online 1 Token") && (
               <>
                 <div className="col-12 col-md-6 p-1">
                   <div className="fw-bold text-dark small">

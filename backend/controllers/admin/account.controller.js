@@ -2861,7 +2861,7 @@ export const fetchGamesList = async (req, res) => {
     const limit = 20;
     const skip = (req.body.page - 1) * limit;
 
-    const games = await Game.find().skip(skip).limit(4);
+    const games = await Game.find().skip(skip).limit(10);
 
     return res.json({
       success: true,
