@@ -213,6 +213,20 @@ export const Dashboard = () => {
                   money={true}
                   desc={`(total completed quickludo match reward)`}
                 />
+
+                <ReportItem
+                  title="Classic 1 Token Bets"
+                  value={data.TokenBet}
+                  money={true}
+                  desc={`(total completed 1 token match bets)`}
+                />
+
+                <ReportItem
+                  title="Classic 1 Token Rewards"
+                  value={data.TokenReward}
+                  money={true}
+                  desc={`(total completed 1 token match reward)`}
+                />
               </div>
             )}
           </div>

@@ -39,6 +39,8 @@ import { ManageSpeedMatches } from "./assets/components/pages/ManageSpeedMatches
 import { OpenSpeedMatch } from "./assets/components/pages/OpenSpeedMatch";
 import { ManageQuickMatches } from "./assets/components/pages/ManageQuickMatches";
 import { OpenQuickMatch } from "./assets/components/pages/OpenQuickMatch";
+import { ManageOnlineMatches2 } from "./assets/components/pages/ManageOnlineMatches2";
+import { OpenOnlineMatch2 } from "./assets/components/pages/OpenOnlineMatch2";
 export const App = () => {
   const { isAuth } = useSelector((store) => store.auth);
   const dispatch = useDispatch();
@@ -139,6 +141,16 @@ export const App = () => {
               </ProtectedRoute>
             }
           />
+
+          <Route
+            path="manage-1token-matches"
+            element={
+              <ProtectedRoute isAuth={isAuth}>
+                <ManageOnlineMatches2 />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="manage-speed-matches"
             element={
@@ -305,6 +317,15 @@ export const App = () => {
             element={
               <ProtectedRoute isAuth={isAuth}>
                 <OpenOnlineMatch />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="online-match2/:matchId"
+            element={
+              <ProtectedRoute isAuth={isAuth}>
+                <OpenOnlineMatch2 />
               </ProtectedRoute>
             }
           />

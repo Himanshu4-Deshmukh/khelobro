@@ -30,6 +30,8 @@ import { AddMoney2 } from "./components/pages/AddMoney2";
 import { Terms } from "./components/pages/Terms";
 import { QuickLudoP } from "./components/pages/QuickLudoP";
 import { SpeedLudoP2 } from "./components/pages/SpeedLudoP2";
+import OnlineClassic2 from "./onlineclassic2";
+import { ClassicOnline2 } from "./components/pages/ClassicOnline2";
 
 export const App = () => {
   const { loading } = useSelector((store) => store.auth);
@@ -58,6 +60,7 @@ export const App = () => {
 
             <Route path="classic-manual" element={<CreateMatch />} />
             <Route path="classic-online" element={<ClassicOnline />} />
+            <Route path="classic-1token" element={<ClassicOnline2 />} />
             <Route path="speedludo" element={<SpeedLudoP />} />
             <Route path="speedludo2" element={<SpeedLudoP2 />} />
 
@@ -75,6 +78,14 @@ export const App = () => {
           <Route
             path="/classic-online-game/:gameUid"
             element={<OnlineClassic />}
+          />
+          <Route
+            path="/classic-online-game/:gameUid"
+            element={<OnlineClassic />}
+          />
+          <Route
+            path="/classic-1token-game/:gameUid"
+            element={<OnlineClassic2 />}
           />
           <Route path="/speed-ludo-game/:gameUid" element={<SpeedLudo />} />
           <Route path="/quick-ludo-game/:gameUid" element={<QuickLudo />} />

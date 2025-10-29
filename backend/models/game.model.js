@@ -38,6 +38,9 @@ const gameSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    order: {
+      type: Number,
+    },
     durationLite: {
       type: Number,
       required: true,

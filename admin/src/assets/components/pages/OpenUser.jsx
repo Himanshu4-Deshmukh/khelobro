@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import { UserOnlineMatches } from "../elements/UserOnlineMatches";
 import { UserSpeedMatches } from "../elements/UserSpeedMatches";
 import { UserQuickMatches } from "../elements/UserQuickMatches";
+import { UserOnlineMatches2 } from "../elements/UserOnlineMatches2";
 
 export const OpenUser = () => {
   const { userId } = useParams();
@@ -92,6 +93,12 @@ export const OpenUser = () => {
             <DashButton
               current={menu}
               action={handleMenu}
+              text="1 Token Matches"
+            />
+
+            <DashButton
+              current={menu}
+              action={handleMenu}
               text="Speed Matches"
             />
             <DashButton
@@ -113,6 +120,7 @@ export const OpenUser = () => {
           {menu == "Transactions" && <UserTransaction user={user} />}
           {menu == "Manual Matches" && <UserManualMatches user={user} />}
           {menu == "Online Matches" && <UserOnlineMatches user={user} />}
+          {menu == "1 Token Matches" && <UserOnlineMatches2 user={user} />}
           {menu == "Speed Matches" && <UserSpeedMatches user={user} />}
           {menu == "Quick Matches" && <UserQuickMatches user={user} />}
 

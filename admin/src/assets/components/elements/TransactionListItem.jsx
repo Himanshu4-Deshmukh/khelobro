@@ -38,9 +38,9 @@ export const TransactionListItem = ({ txn }) => {
               <Link
                 to={`/${txn.match.type == "manual" ? "match" : ""}${
                   txn.match.type == "speedludo" ? "speed-match" : ""
-                }${
-                  txn.match.type == "quickludo" ? "quick-match" : ""
-                }${txn.match.type == "online" ? "online-match" : ""}/${
+                }${txn.match.type == "quickludo" ? "quick-match" : ""}${
+                  txn.match.type == "online" ? "online-match" : ""
+                }${txn.match.type == "online2" ? "online-match2" : ""}/${
                   txn.match._id
                 }`}
                 className="btn btn-dark m-0 p-0 text-white small px-2 mx-1 rounded"

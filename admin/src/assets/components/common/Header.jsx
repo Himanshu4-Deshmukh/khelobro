@@ -20,6 +20,7 @@ export const Header = () => {
     message,
     runningMatch,
     onlineMatch,
+    onlineMatch2,
     speedMatch,
     quickMatch,
 
@@ -68,7 +69,7 @@ export const Header = () => {
                         : "btn-outline-primary"
                     } p-0 px-2 py-1`}
                   >
-                    Cancel Requests : {cancelReq}
+                    Cancels : {cancelReq}
                   </div>
                 </Link>
               )}
@@ -121,6 +122,15 @@ export const Header = () => {
                     Online : {onlineMatch}
                   </div>
                 </Link>
+                <Link to="/manage-1token-matches">
+                  <div
+                    className={`text-nowrap btn btn-sm animate__headShake animate__infinite ${
+                      onlineMatch2 > 0 ? "btn-primary" : "btn-outline-primary"
+                    } p-0 px-2 py-1`}
+                  >
+                    1 Token : {onlineMatch2}
+                  </div>
+                </Link>
 
                 <Link to="/manage-speed-matches">
                   <div
@@ -164,7 +174,7 @@ export const Header = () => {
                       : "btn-outline-primary"
                   } p-0 px-2 py-1`}
                 >
-                  New Message : {message}
+                  Chats : {message}
                 </div>
               </Link>
             )}

@@ -16,6 +16,7 @@ import { OnlineGame } from "../models/onlinegame.js";
 import { SpeedLudo } from "../models/speedludo.js";
 import DEVELOPER from "../models/developer.model.js";
 import { QuickLudo } from "../models/quickludo.js";
+import { OnlineGame2 } from "../models/onlinegame2.js";
 const otpOptions = {
   lowerCaseAlphabets: false,
   upperCaseAlphabets: false,
@@ -1460,6 +1461,32 @@ export const fetchMe = async (req, res) => {
       ],
     }).sort({ createdAt: -1 });
 
+    const totalMatch4 = await OnlineGame2.countDocuments({
+      $and: [
+        { status: "completed" }, // Exclude the current matchId
+        {
+          $or: [
+            { "blue.userId": req.user._id }, // Condition 1: Host userId matches
+            { "green.userId": req.user._id },
+            // Condition 2: Joiner userId matches
+          ],
+        },
+      ],
+    }).sort({ createdAt: -1 });
+
+    const totalMatch5 = await QuickLudo.countDocuments({
+      $and: [
+        { status: "completed" }, // Exclude the current matchId
+        {
+          $or: [
+            { "blue.userId": req.user._id }, // Condition 1: Host userId matches
+            { "green.userId": req.user._id },
+            // Condition 2: Joiner userId matches
+          ],
+        },
+      ],
+    }).sort({ createdAt: -1 });
+
     const wonMatch = await ManualMatch.find({
       $and: [
         { status: "completed", "winner.userId": req.user._id }, // Exclude the current matchId
@@ -1500,6 +1527,19 @@ export const fetchMe = async (req, res) => {
     }).sort({ createdAt: -1 });
 
     const wonMatch4 = await QuickLudo.countDocuments({
+      $and: [
+        { status: "completed" }, // Exclude the current matchId
+        {
+          $or: [
+            { "blue.userId": req.user._id, "blue.result": "winner" }, // Condition 1: Host userId matches
+            { "green.userId": req.user._id, "green.result": "winner" },
+            // Condition 2: Joiner userId matches
+          ],
+        },
+      ],
+    }).sort({ createdAt: -1 });
+
+    const wonMatch5 = await OnlineGame2.countDocuments({
       $and: [
         { status: "completed" }, // Exclude the current matchId
         {

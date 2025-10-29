@@ -17,7 +17,9 @@ import {
   fetchMatch,
   fetchMatches,
   fetchOnlineMatch,
+  fetchOnlineMatch2,
   fetchOnlineMatches,
+  fetchOnlineMatches2,
   fetchQuickMatch,
   fetchQuickMatches,
   fetchSpeedMatch,
@@ -25,6 +27,7 @@ import {
   fetchUser,
   fetchUserMatches,
   fetchUserOnlineMatches,
+  fetchUserOnlineMatches2,
   fetchUserQuickMatches,
   fetchUsersList,
   fetchUserSpeedMatches,
@@ -62,11 +65,14 @@ router.route("/fetchUsersList").post(auth, fetchUsersList);
 router.route("/fetchUserTransactions").post(auth, fetchUserTransactions);
 router.route("/fetchUserMatches").post(auth, fetchUserMatches);
 router.route("/fetchUserOnlineMatches").post(auth, fetchUserOnlineMatches);
+router.route("/fetchUserOnlineMatches2").post(auth, fetchUserOnlineMatches2);
 router.route("/fetchUserSpeedMatches").post(auth, fetchUserSpeedMatches);
 router.route("/fetchUserQuickMatches").post(auth, fetchUserQuickMatches);
 
 router.route("/fetchMatches").post(auth, fetchMatches);
 router.route("/fetchOnlineMatches").post(auth, fetchOnlineMatches);
+router.route("/fetchOnlineMatches2").post(auth, fetchOnlineMatches2);
+
 router.route("/fetchSpeedMatches").post(auth, fetchSpeedMatches);
 router.route("/fetchQuickMatches").post(auth, fetchQuickMatches);
 
@@ -75,6 +81,7 @@ router.route("/fetchDeposits").post(auth, fetchDeposits);
 router.route("/fetchUser").post(auth, fetchUser);
 router.route("/fetchMatch").post(auth, fetchMatch);
 router.route("/fetchOnlineMatch").post(auth, fetchOnlineMatch);
+router.route("/fetchOnlineMatch2").post(auth, fetchOnlineMatch2);
 
 router.route("/fetchSpeedMatch").post(auth, fetchSpeedMatch);
 router.route("/fetchQuickMatch").post(auth, fetchQuickMatch);

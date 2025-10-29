@@ -26,6 +26,8 @@ const initialState = {
   pendingResult: 0,
   runningMatch: 0,
   onlineMatch: 0,
+  onlineMatch2: 0,
+
   speedMatch: 0,
   quickMatch: 0,
 };
@@ -42,6 +44,8 @@ const authSlice = createSlice({
       state.pendingResult = action.payload.pendingResult;
       state.runningMatch = action.payload.runningMatch;
       state.onlineMatch = action.payload.onlineMatch;
+      state.onlineMatch2 = action.payload.onlineMatch2;
+
       state.speedMatch = action.payload.speedMatch;
       state.quickMatch = action.payload.quickMatch;
     },

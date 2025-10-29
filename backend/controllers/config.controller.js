@@ -3,6 +3,7 @@ import { Config } from "../models/config.model.js";
 import DEVELOPER from "../models/developer.model.js";
 import { ManualMatch } from "../models/manualmatch.model.js";
 import { OnlineGame } from "../models/onlinegame.js";
+import { OnlineGame2 } from "../models/onlinegame2.js";
 import OTP from "../models/otp.model.js";
 import { QuickLudo } from "../models/quickludo.js";
 import { SpeedLudo } from "../models/speedludo.js";
@@ -191,6 +192,22 @@ export const fetchReports = async (req, res) => {
       },
     ]);
 
+    const betmoney5 = await OnlineGame2.aggregate([
+      {
+        $match: {
+          status: "completed",
+          createdAt: zone, // Make sure `zone` is a valid date filter
+        },
+      },
+      {
+        $group: {
+          _id: null, // Group all matching documents together
+          totalAmount: { $sum: "$entryFee" }, // Sum the "amount" field
+          totalPrize: { $sum: "$prize" }, // Sum the "amount" field
+        },
+      },
+    ]);
+
     let bmoney = betmoney.length > 0 ? betmoney[0].totalAmount : 0;
     let pmoney = betmoney.length > 0 ? betmoney[0].totalPrize : 0;
 
@@ -214,6 +231,11 @@ export const fetchReports = async (req, res) => {
 
     data.QuickReward = betmoney4.length > 0 ? betmoney4[0].totalPrize : 0;
 
+    data.TokenBet = betmoney5.length > 0 ? betmoney5[0].totalAmount : 0;
+    data.TokenBet *= 2;
+
+    data.TokenReward = betmoney5.length > 0 ? betmoney5[0].totalPrize : 0;
+
     // data.SpeedReward += betmoney3.length > 0 ? betmoney3[0].totalPrize2 : 0;
 
     // Extract the total sum from the result
@@ -225,6 +247,9 @@ export const fetchReports = async (req, res) => {
 
     data.Total_Played_Bet += data.QuickBet;
     data.Total_Reward_Earned += data.QuickReward;
+
+    data.Total_Played_Bet += data.TokenBet;
+    data.Total_Reward_Earned += data.TokenReward;
 
     data.Total_Conflicted_Matches = await ManualMatch.countDocuments({
       conflict: true,
