@@ -90,13 +90,13 @@ export const Configuration = () => {
                   </div>
                 );
               }
-
-              if (key === "YOUTUBE_VIDEO_LINK") key = "TELEGRAM_LINK";
+              let keytemp = key;
+              if (key === "YOUTUBE_VIDEO_LINK") keytemp = "TELEGRAM_LINK";
               // Default text field
               return (
                 <div key={key} className="my-3">
                   <div className="small fw-bold text-dark">
-                    {formatLabel(key)}
+                    {formatLabel(keytemp)}
                   </div>
                   <input
                     type="text"
