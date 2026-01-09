@@ -46,7 +46,7 @@ export const OpenUser = () => {
         amount: amountRef.current.value,
       },
       handleRefresh,
-      () => {}
+      () => { }
     );
   };
 
@@ -70,7 +70,12 @@ export const OpenUser = () => {
       </div>
       {user && (
         <div>
-          <UserInfo user={user} refresh={handleRefresh} />
+          {/* <UserInfo user={user} refresh={handleRefresh} /> */}
+          <UserInfo
+            user={user}
+            refresh={handleRefresh}
+            isSuperadmin={_isSuperadmin}
+          />
 
           <div className="p-2 my-2 d-flex gap-2 flex-wrap">
             <DashButton current={menu} action={handleMenu} text="Dashboard" />

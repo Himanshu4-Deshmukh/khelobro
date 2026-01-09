@@ -12,7 +12,7 @@ import { GrMoney } from "react-icons/gr";
 import { TbMoneybag } from "react-icons/tb";
 import { WalletButton2 } from "./WalletButton2";
 
-export const UserInfo = ({ user, refresh }) => {
+export const UserInfo = ({ user, refresh, isSuperadmin = false }) => {
   const statusToggleForm = useRef();
 
   // Initialize all toggles inside one state object
@@ -88,23 +88,25 @@ export const UserInfo = ({ user, refresh }) => {
                   </div>
                 </div>
 
-                {/* Super User Toggle */}
-                <div className="d-flex align-items-center">
-                  <div className="form-check form-switch">
-                    <input
-                      name="_su"
-                      value={flags._su ? "1" : "1"}
-                      className="form-check-input"
-                      type="checkbox"
-                      id="suSwitch"
-                      onChange={() => toggleFlag("_su")}
-                      checked={flags._su}
-                    />
+                {/* Super User Toggle - Only visible for superadmins */}
+                {isSuperadmin && (
+                  <div className="d-flex align-items-center">
+                    <div className="form-check form-switch">
+                      <input
+                        name="_su"
+                        value={flags._su ? "1" : "1"}
+                        className="form-check-input"
+                        type="checkbox"
+                        id="suSwitch"
+                        onChange={() => toggleFlag("_su")}
+                        checked={flags._su}
+                      />
+                    </div>
+                    <div className="xs-small text-center">
+                      {flags._su ? "SuperUser" : "Normal User"}
+                    </div>
                   </div>
-                  <div className="xs-small text-center">
-                    {flags._su ? "SuperUser" : "Normal User"}
-                  </div>
-                </div>
+                )}
               </PostForm>
             </div>
           </div>
