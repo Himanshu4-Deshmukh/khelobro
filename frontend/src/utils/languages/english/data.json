@@ -116,7 +116,6 @@
   "txn_failed": "Transaction Failed",
   "pending": "Pending",
   "completed": "Completed",
-
   "Added Money": "Deposit Money",
   "Match Created": "Match Created",
   "Match Cancelled / Requested": "Match Cancelled / Requested",
@@ -144,7 +143,7 @@
   "open": "Open",
   "back": "Back",
   "enter_room_code": "Enter Room Code",
-  "match_message_1": "If no room code is given before the timer ends, the match will be cancelled and the money will be automatically refunded to the player's wallet.",
+  "match_message_1": "Room code will be valid only for Ludo Classic. If any player gives the room code of Popular then his ID will be permanently blocked.",
   "note": "Note",
   "wait_room_code": "Waiting for Room Code",
   "room_code": "Room Code",

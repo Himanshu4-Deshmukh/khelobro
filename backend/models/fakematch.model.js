@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 const matchSchema = new mongoose.Schema({
   entryFee: {
     type: Number,
-    required: true,
+    required: false,   // 🔴 make optional
+    default: 0,        // ✅ safety default
   },
   prize: {
     type: Number,

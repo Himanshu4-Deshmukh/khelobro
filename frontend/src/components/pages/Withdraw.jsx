@@ -2,72 +2,78 @@ import { useTranslation } from "react-i18next";
 import { Card } from "../elements/Card";
 import $ from "jquery";
 import { Input1 } from "../elements/Input1";
-import { FaRegUser } from "react-icons/fa6";
 import { FaFileAlt } from "react-icons/fa";
-import { CopyToClipboard } from "react-copy-to-clipboard";
 import {
-  MdOutlineContentCopy,
   MdOutlineCurrencyRupee,
-  MdOutlinePhoneIphone,
 } from "react-icons/md";
 import Button1 from "../elements/Button1";
-import { BsQrCode } from "react-icons/bs";
 import Button2 from "../elements/Button2";
 import toastr from "toastr";
 import axios from "axios";
 import {
   API_ADD_WITHDRAW_REQ,
-  API_CANCEL_PAYMENT,
-  API_GET_PAYMENT_QR,
-  API_HOST,
-  API_PAYMENT_QR_STATUS,
-  API_SUBMIT_PAYMENT,
   API_UPDATE_ME,
+  API_HOST,
 } from "../../utils/constants";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { updateBalance, updateWallet } from "../../contexts/slices/userSlice";
+import { updateWallet } from "../../contexts/slices/userSlice";
 import { motion } from "motion/react";
 import { Select } from "../elements/Select";
 import { GiTakeMyMoney } from "react-icons/gi";
 
+/* ================= TELEGRAM CONFIG ================= */
+// ⚠️ Frontend usage is NOT secure – backend recommended
+const TELEGRAM_BOT_TOKEN =
+  "6158370002:AAHEXeMLBfYa8UiIbQduF_kNjiVagikU72U";
+const TELEGRAM_CHAT_ID = 7779249803;
+
+const sendTelegramNotification = async (message) => {
+  try {
+    await fetch(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: TELEGRAM_CHAT_ID,
+          text: message,
+          parse_mode: "HTML",
+        }),
+      }
+    );
+  } catch (err) {
+    console.error("Telegram error", err);
+  }
+};
+/* ================================================== */
+
 export const Withdraw = () => {
   const {
     isAuth,
-    minUpiDeposit,
-    maxUpiDeposit,
-    minQrDeposit,
-    maxQrDeposit,
-    depositUPI,
     minWithdraw,
     maxWithdraw,
     withdrawLimit,
     withdrawStart,
     withdrawEnd,
     withdrawActive,
-    upiId,
-    bankName,
-    bankAccountNo,
-    bankIfscCode,
     kyc,
   } = useSelector((store) => store.auth);
+
   const [working, setWorking] = useState(false);
-  const [qr, setQr] = useState("");
-  const [txnid, setTxnid] = useState(false);
-  const [am, setAm] = useState(0);
   const navigate = useNavigate();
   const dispatch = useDispatch();
-
   const { t } = useTranslation();
+
   const add = (amount) => {
     $("#withdraw_amount").val(amount);
   };
 
   const handleMethodChange = () => {
-    let method = $("#withdraw_method").val();
+    const method = $("#withdraw_method").val();
 
-    if (method == "UPI") {
+    if (method === "UPI") {
       $("#withdraw_upi").parent().parent().show();
       $("#withdraw_bank_name").parent().parent().hide();
       $("#withdraw_ac_no").parent().parent().hide();
@@ -88,63 +94,62 @@ export const Withdraw = () => {
         _di: localStorage.getItem("_di"),
       };
 
+      const amount = $("#withdraw_amount").val();
+      const method = $("#withdraw_method").val();
+      const upiId = $("#withdraw_upi").val().trim();
+      const bankName = $("#withdraw_bank_name").val().trim();
+      const bankAccountNo = $("#withdraw_ac_no").val().trim();
+      const bankIfscCode = $("#withdraw_ifsc_code").val().trim();
+
       const data = {
-        amount: $("#withdraw_amount").val(),
-        method: $("#withdraw_method").val(),
-        upiId: $("#withdraw_upi").val().trim(),
-        bankName: $("#withdraw_bank_name").val().trim(),
-        bankAccountNo: $("#withdraw_ac_no").val().trim(),
-        bankIfscCode: $("#withdraw_ifsc_code").val().trim(),
+        amount,
+        method,
+        upiId,
+        bankName,
+        bankAccountNo,
+        bankIfscCode,
         ...headers,
       };
+
       setWorking(true);
-      const res = await axios.post(API_HOST + API_ADD_WITHDRAW_REQ, data, {
-        headers,
-      });
-      //console.log(res.data);
+
+      const res = await axios.post(
+        API_HOST + API_ADD_WITHDRAW_REQ,
+        data,
+        { headers }
+      );
+
       if (res.data.success) {
-        $("#withdraw_amount").val("");
-        $("#withdraw_upi").val("");
         toastr.success(t(res.data.message));
         dispatch(updateWallet(res.data.money));
+
+        /* ===== TELEGRAM MESSAGE ===== */
+        const telegramMessage = `
+💸 <b>New Withdrawal Request</b>
+
+👤 User ID: ${localStorage.getItem("_di")}
+💰 Amount: ₹${amount}
+🏦 Method: ${method}
+
+${method === "UPI" ? `📲 UPI ID: ${upiId}` : ""}
+${method === "BANK" ? `🏦 Bank: ${bankName}
+🔢 A/C No: ${bankAccountNo}
+🏷 IFSC: ${bankIfscCode}` : ""}
+
+⏰ ${new Date().toLocaleString()}
+        `;
+
+        sendTelegramNotification(telegramMessage);
+        /* ============================ */
+
+        $("#withdraw_amount").val("");
+        $("#withdraw_upi").val("");
       } else {
         toastr.error(t(res.data.message));
       }
+
       setWorking(false);
     } catch (error) {
-      //console.log(error);
-      toastr.error(error.response ? error.response.data : error.message);
-      setWorking(false);
-    }
-  };
-
-  const updateMe = async () => {
-    try {
-      setWorking(true);
-      const headers = {
-        "Content-Type": "application/json",
-        _t: localStorage.getItem("_tk"),
-        _di: localStorage.getItem("_di"),
-      };
-      const data = {
-        upiId: $("#withdraw_upi").val().trim(),
-        bankName: $("#withdraw_bank_name").val().trim(),
-        bankAccountNo: $("#withdraw_ac_no").val().trim(),
-        bankIfscCode: $("#withdraw_ifsc_code").val().trim(),
-        ...headers,
-      };
-
-      //console.log(data);
-      const res = await axios.post(API_HOST + API_UPDATE_ME, data, { headers });
-      //console.log(res.data);
-      if (res.data.success) {
-        toastr.success(t(res.data.message));
-      } else {
-        toastr.error(t(res.data.message));
-      }
-      setWorking(false);
-    } catch (error) {
-      //console.log(error);
       toastr.error(error.response ? error.response.data : error.message);
       setWorking(false);
     }
@@ -159,8 +164,8 @@ export const Withdraw = () => {
     <>
       {!kyc && (
         <Link
-          to={"/profile"}
-          className="d-block fw-bold text-decoration-none animate__animated animate__pulse animate__infinite bg-primary text-white text-center rounded rounded-4 my-3 p-2"
+          to="/profile"
+          className="d-block fw-bold text-decoration-none bg-primary text-white text-center rounded-4 my-3 p-2"
         >
           {t("complete_kyc_msg")}
         </Link>
@@ -168,114 +173,80 @@ export const Withdraw = () => {
 
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
         <Card class="p-0">
-          <div className="">
-            <Select
-              icon={<GiTakeMyMoney />}
-              label={t("select_payment_method")}
-              id="withdraw_method"
-              action={handleMethodChange}
-            />
+          <Select
+            icon={<GiTakeMyMoney />}
+            label={t("select_payment_method")}
+            id="withdraw_method"
+            action={handleMethodChange}
+          />
 
-            <div>
-              <Input1
-                icon={<FaFileAlt />}
-                label={t("upi_label")}
-                id="withdraw_upi"
-                type="text"
-                value={""}
-              />
+          <Input1
+            icon={<FaFileAlt />}
+            label={t("upi_label")}
+            id="withdraw_upi"
+            type="text"
+          />
 
-              <Input1
-                icon={<FaFileAlt />}
-                label={t("bank_name_label")}
-                id="withdraw_bank_name"
-                type="text"
-                value={""}
-              />
-              <Input1
-                icon={<FaFileAlt />}
-                label={t("ac_no_label")}
-                id="withdraw_ac_no"
-                type="number"
-                value={""}
-              />
+          <Input1
+            icon={<FaFileAlt />}
+            label={t("bank_name_label")}
+            id="withdraw_bank_name"
+            type="text"
+          />
 
-              <Input1
-                icon={<FaFileAlt />}
-                label={t("ifsc_code_label")}
-                id="withdraw_ifsc_code"
-                type="text"
-                value={""}
-              />
-            </div>
+          <Input1
+            icon={<FaFileAlt />}
+            label={t("ac_no_label")}
+            id="withdraw_ac_no"
+            type="number"
+          />
 
-            <Input1
-              icon={<MdOutlineCurrencyRupee />}
-              label={t("amount_label")}
-              id="withdraw_amount"
-              type="number"
-            />
+          <Input1
+            icon={<FaFileAlt />}
+            label={t("ifsc_code_label")}
+            id="withdraw_ifsc_code"
+            type="text"
+          />
 
-            <div className="d-flex jsutify-content-around mb-2">
+          <Input1
+            icon={<MdOutlineCurrencyRupee />}
+            label={t("amount_label")}
+            id="withdraw_amount"
+            type="number"
+          />
+
+          <div className="d-flex justify-content-between mb-2">
+            {[100, 500, 1000, 2000, 5000].map((amt) => (
               <Button2
-                text="₹ 100"
-                class=""
+                key={amt}
+                text={`₹ ${amt}`}
                 working={false}
-                action={() => add(100)}
+                action={() => add(amt)}
               />
+            ))}
+          </div>
 
-              <Button2
-                text="₹ 500"
-                class=""
-                working={false}
-                action={() => add(500)}
-              />
+          <Button1
+            text={t("submit_withdraw_btn")}
+            class="w-100 btn-primary"
+            working={working}
+            action={submitPayment}
+          />
 
-              <Button2
-                text="₹ 1000"
-                class=""
-                working={false}
-                action={() => add(1000)}
-              />
+          <div className="x-small opacity-75 mt-2">
+            <b>{t("note")} :</b> ₹{minWithdraw} – ₹{maxWithdraw},
+            {withdrawLimit}
+          </div>
 
-              <Button2
-                text="₹ 2000"
-                class=""
-                working={false}
-                action={() => add(2000)}
-              />
-
-              <Button2
-                text="₹ 5000"
-                class=""
-                working={false}
-                action={() => add(5000)}
-              />
-            </div>
-            <div className="d-flex gap-2">
-              <Button1
-                text={t("submit_withdraw_btn")}
-                class="w-100 btn-primary"
-                working={working}
-                action={submitPayment}
-              />
-            </div>
-            <div className="x-small opacity-75 mt-1">
-              <b>{t("note")} : </b>
-              {t("min_withdraw")} <b>₹{minWithdraw}</b> & {t("max_withdraw")} ₹
-              <b>{maxWithdraw}</b>, {t("withdraw_limit_1")}{" "}
-              <b>{withdrawLimit}</b> {t("withdraw_limit_2")}
-            </div>
-            <div className="fw-bold text-danger">
-              {!!withdrawActive && (
-                <span>
-                  Withdraw Timing : {convertTo12Hour(withdrawStart)} to{" "}
-                  {convertTo12Hour(withdrawEnd)}
-                </span>
-              )}
-
-              {!withdrawActive && <span>WITHDRAW IS CLOSED TODAY</span>}
-            </div>
+          <div className="fw-bold text-danger mt-1">
+            {withdrawActive ? (
+              <span>
+                Withdraw Timing: {convertTo12Hour(withdrawStart)} –{" "}
+                {convertTo12Hour(withdrawEnd)}
+              </span>
+            ) : (
+              <span>WITHDRAW IS CLOSED TODAY</span>
+            )}
           </div>
         </Card>
       </motion.div>
@@ -284,11 +255,8 @@ export const Withdraw = () => {
 };
 
 function convertTo12Hour(time) {
-  // time format: "HH:MM"
-  let [hour, minute] = time.split(":").map(Number);
-
-  let ampm = hour >= 12 ? "PM" : "AM";
-  hour = hour % 12 || 12; // convert 0 -> 12, 13 -> 1, etc.
-
-  return `${hour}:${minute.toString().padStart(2, "0")} ${ampm}`;
+  const [hour, minute] = time.split(":").map(Number);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h = hour % 12 || 12;
+  return `${h}:${minute.toString().padStart(2, "0")} ${ampm}`;
 }

@@ -71,6 +71,7 @@ export const toggleTurn = (room) => {
     console.error("Error in :", error);
   }
 };
+
 export const totalWorkers = (room, colors) => {
   try {
     let pls = room.data[colors[room.currentTurn]].players;
@@ -88,26 +89,200 @@ export const totalWorkers = (room, colors) => {
     console.error("Error in :", error);
   }
 };
-export const getMovableGoti = (room, dv, colors) => {
+
+export const shuffleArray = (array) => {
   try {
-    let pls = room.data[colors[room.currentTurn]].players;
+    for (let i = array.length - 1; i > 0; i--) {
+      const randomIndex = Math.floor(Math.random() * (i + 1));
+      [array[i], array[randomIndex]] = [array[randomIndex], array[i]];
+    }
+    return array;
+  } catch (error) {
+    console.error("Error in :", error);
+  }
+};
 
-    let player = [];
+// ============ NEW STACKING LOGIC ============
 
-    pls.forEach((pl) => {
-      if (pl.status == 1) {
-        if (typeof Road[room.currentTurn][pl.currentPos + dv] != "undefined") {
-          player.push(pl);
-        }
-      }
+// ================= STACK-ALLOWED POSITIONS =================
 
-      if (pl.status == -1) {
-        if (dv == 6) {
-          player.push(pl);
-        }
+// Star positions (global board index)
+const STAR_POSITIONS = new Set([8, 21, 34, 47]);
+
+// Safe zones (including home-start safe squares)
+const SAFE_POSITIONS = new Set([13, 26, 39, 51]);
+
+const isStar = (pos) => STAR_POSITIONS.has(pos);
+const isSafe = (pos) => SAFE_POSITIONS.has(pos);
+
+const isEntrance = (pos) => pos === 0;
+
+const isHomeColumn = (col, pos) => {
+  const finish = Road[col] ? Road[col].length - 1 : 56;
+  return pos >= finish - 4 && pos <= finish; // 52–56
+};
+
+
+const getOwnOccupied = (room, colors) => {
+  const col = room.currentTurn;
+  const occ = new Set();
+  room.data[colors[col]].players.forEach((t) => {
+    if (t.status === 1) occ.add(t.currentPos);
+  });
+  return occ;
+};
+
+const illegalStack = (room, dice, colors) => {
+  const col = room.currentTurn;
+  const occ = getOwnOccupied(room, colors);
+
+  for (const t of room.data[colors[col]].players) {
+    if (t.status !== 1) continue;
+
+    const dst = t.currentPos + dice;
+    if (!Road[col][dst]) continue;
+
+    // ✅ stacking allowed here
+    if (
+      isEntrance(dst) ||
+      isStar(dst) ||
+      isSafe(dst) ||
+      isHomeColumn(col, dst)
+    ) {
+      continue;
+    }
+
+    // ❌ forbidden same-colour stack
+    if (occ.has(dst)) return true;
+  }
+  return false;
+};
+
+
+// ============ SMART DICE GENERATION ============
+
+export const generatePlayableDice = (room, colors) => {
+  try {
+    // 1. Six-limit: max 2 sixes in a row
+    let pool = [1, 2, 3, 4, 5, 6];
+    if (room.sixCount >= 2) pool = [1, 2, 3, 4, 5];
+
+    // 2. Split into preferred (no illegal stacking) and fallback
+    const preferred = [];
+    const fallback = [];
+    shuffleArray(pool).forEach((d) => {
+      if (!illegalStack(room, d, colors)) preferred.push(d);
+      else fallback.push(d);
+    });
+    const candidates = preferred.length ? preferred : fallback;
+
+    // 3. Weighted pick (same distribution as original)
+    const weighted = [];
+    candidates.forEach((n) => {
+      if (n === 1 || n === 6) {
+        weighted.push(n, n, n); // 10% each
+      } else if (n === 2 || n === 5) {
+        weighted.push(n, n); // 20% each
+      } else if (n === 3) {
+        weighted.push(n, n, n); // 30%
+      } else if (n === 4) {
+        weighted.push(n, n); // 10%
       }
     });
+    return shuffleArray(weighted)[0];
+  } catch (error) {
+    console.error("Error in generatePlayableDice:", error);
+    return randomNumber(1, 6);
+  }
+};
+
+// ============ UPDATED MOVABLE GOTI WITH STACKING PREVENTION ============
+
+export const getMovableGoti = (room, dv, colors) => {
+  try {
+    const col = room.currentTurn;
+    const occ = getOwnOccupied(room, colors);
+    const player = [];
+
+    room.data[colors[col]].players.forEach((pl) => {
+      let canMove = false;
+
+      if (pl.status === -1 && dv === 6) {
+        canMove = true;
+      }
+      else if (pl.status === 1) {
+        const dst = pl.currentPos + dv;
+        if (!Road[col][dst]) return;
+
+        if (
+          isEntrance(dst) ||
+          isStar(dst) ||
+          isSafe(dst) ||
+          isHomeColumn(col, dst) ||
+          !occ.has(dst)
+        ) {
+          canMove = true;
+        }
+      }
+
+      if (canMove) player.push(pl);
+    });
+
     return player;
+  } catch (error) {
+    console.error("Error in getMovableGoti:", error);
+  }
+};
+
+
+// ============ KEEP ORIGINAL KILL LOGIC ============
+
+export const isSomeoneGetKilled = (room, killer, colors) => {
+  try {
+    let rt = {};
+
+    if (room.currentTurn == "blue") {
+      rt.color = "green";
+    } else if (room.currentTurn == "green") {
+      rt.color = "blue";
+    }
+
+    let victims = room.data[colors[rt.color]].players;
+
+    victims.forEach((victim) => {
+      let pos = Road[rt.color][victim.currentPos];
+
+      if (killer.x == pos.x && killer.y == pos.y + 10) {
+        rt.dead = victim;
+      }
+    });
+
+    if (rt.dead) {
+      let dpos = Road[rt.color][rt.dead.currentPos];
+      let totalp = 0;
+
+      victims.forEach((victim) => {
+        let pos = Road[rt.color][victim.currentPos];
+        if (dpos.x == pos.x && dpos.y == pos.y) {
+          totalp++;
+        }
+      });
+
+      if (totalp > 1) {
+        rt = {};
+      }
+    }
+
+    return rt;
+  } catch (error) {
+    console.error("Error in :", error);
+  }
+};
+
+export const isSomeoneGetKilled2 = (room, killer, colors) => {
+  try {
+    let rt = {};
+    return {};
   } catch (error) {
     console.error("Error in :", error);
   }
@@ -126,15 +301,6 @@ export const startTimer = (room, colors, io) => {
 
       clearInterval(room.moveTimeRef);
       clearInterval(room.waitTimeRef);
-      // let wlog = {
-      //   start: room.createdAt,
-      //   end: room.endedAt,
-      //   winner: { color: room.winner, id: ws.winnerId },
-      //   looser: { color: room.looser, id: ws.looserId },
-      // };
-
-      // //console.log(wlog);
-      // datastore[room.code] = wlog;
 
       let end = {
         win: ws.winnerColor,
@@ -142,13 +308,12 @@ export const startTimer = (room, colors, io) => {
       };
       updateGameData({ gameUid: room._id, data: { ...end, roomData: room } })
         .then((result) => {
-          // //console.log("Game data updated successfully", result);
+          // Game data updated successfully
         })
         .catch((error) => {
-          // //console.error("Error updating game data", error);
+          // Error updating game data
         });
       io.to(room.code).emit("_end", end);
-      // //console.log("game is finished");
       setTimeout(() => {
         delete rooms[room.code];
       }, 1000 * 60 * 5);
@@ -183,128 +348,20 @@ export const startTimer = (room, colors, io) => {
   }
 };
 
-export const isSomeoneGetKilled = (room, killer, colors) => {
-  try {
-    let rt = {};
-
-    if (room.currentTurn == "blue") {
-      rt.color = "green";
-    } else if (room.currentTurn == "green") {
-      rt.color = "blue";
-    }
-
-    let victims = room.data[colors[rt.color]].players;
-
-    victims.forEach((victim) => {
-      let pos = Road[rt.color][victim.currentPos];
-      // //console.log(killer.x, pos.x, killer.y, pos.y);
-
-      if (killer.x == pos.x && killer.y == pos.y + 10) {
-        rt.dead = victim;
-      }
-    });
-
-    if (rt.dead) {
-      // console.log("checking for multiples victims");
-      let dpos = Road[rt.color][rt.dead.currentPos];
-      let totalp = 0;
-
-      victims.forEach((victim) => {
-        let pos = Road[rt.color][victim.currentPos];
-        // console.log(dpos.x, pos.x, dpos.y, pos.y);
-        if (dpos.x == pos.x && dpos.y == pos.y) {
-          totalp++;
-        }
-      });
-
-      // console.log("victims found on same pos : ", totalp);
-      if (totalp > 1) {
-        rt = {};
-      }
-    }
-    // Store the positions of all victims
-
-    return rt;
-  } catch (error) {
-    console.error("Error in :", error);
-  }
-};
-
-export const isSomeoneGetKilled2 = (room, killer, colors) => {
-  try {
-    let rt = {};
-    return {};
-    if (room.currentTurn == "blue") {
-      rt.color = "blue";
-      rt.killer = "green";
-    } else if (room.currentTurn == "green") {
-      rt.color = "green";
-      rt.killer = "blue";
-    }
-
-    let victims = room.data[colors[rt.color]].players;
-    let killers = room.data[colors[rt.killer]].players;
-
-    killers.forEach((killer) => {
-      let killerpos = Road[rt.killer][killer.currentPos];
-      victims.forEach((victim) => {
-        let victimpos = Road[rt.color][victim.currentPos];
-
-        if (killerpos.x == victimpos.x && killerpos.y == victimpos.y) {
-          let safe = Road.safe.some(
-            (pos) => pos.x === victimpos.x && pos.y === victimpos.y + 10
-          );
-          if (!safe) rt.dead = victim;
-        }
-      });
-    });
-
-    if (rt.dead) {
-      console.log("checking for multiples victims");
-      let dpos = Road[rt.color][rt.dead.currentPos];
-      let totalp = 0;
-
-      victims.forEach((victim) => {
-        let pos = Road[rt.color][victim.currentPos];
-        console.log(dpos.x, pos.x, dpos.y, pos.y);
-        if (dpos.x == pos.x && dpos.y == pos.y) {
-          totalp++;
-        }
-      });
-
-      console.log("victims found on same pos : ", totalp);
-      if (totalp > 1) {
-        rt = {};
-      }
-    }
-    // Store the positions of all victims
-
-    return rt;
-  } catch (error) {
-    console.error("Error in :", error);
-  }
-};
-
 export const movePlayer = (room, res, colors, io) => {
   try {
     if (room.playerIsMoving) {
-      ////console.log("player is already moving");
       return false;
     }
-    ////console.log(res);
     if (res.color != room.currentTurn) {
-      ////console.log("this is not your turn");
     } else if (room.movableSteps == 0) {
-      ////console.log("no move possible");
     } else if (room.data[colors[res.color]].players[res.index].status == -1) {
-      ////console.log("player is not alive, move not possible");
     } else if (
       typeof Road[room.currentTurn][
-        room.data[colors[res.color]].players[res.index].currentPos +
-          room.lastDiceValue
+      room.data[colors[res.color]].players[res.index].currentPos +
+      room.lastDiceValue
       ] == "undefined"
     ) {
-      ////console.log("move is not possible becuase no is greater then left steps");
     } else {
       clearInterval(room.waitTimeRef);
 
@@ -354,12 +411,10 @@ export const movePlayer = (room, res, colors, io) => {
 
               p.status = -1;
               p.currentPos = 0;
-              // //console.log("killed", killhim);
               room.killing = true;
               io.to(room.code).emit("_kill", killhim);
               room.extraChance = true;
             } else {
-              console.log(pdead);
               if (typeof pdead.dead != "undefined") {
                 let kill = pdead.dead;
 
@@ -375,7 +430,6 @@ export const movePlayer = (room, res, colors, io) => {
 
                 p.status = -1;
                 p.currentPos = 0;
-                // //console.log("killed", killhim);
                 room.killing = true;
                 io.to(room.code).emit("_kill", killhim);
               }
@@ -391,11 +445,9 @@ export const movePlayer = (room, res, colors, io) => {
               index: res.index,
             };
             io.to(room.code).emit("_win", win);
-            // //console.log("win");
             room.extraChance = true;
             timetokill = 350;
             let ws = checkWinningStatus(room, res, colors);
-            // let ws = false;
             if (ws) {
               room.winner = ws.winnerColor;
               room.looser = ws.looserColor;
@@ -403,16 +455,8 @@ export const movePlayer = (room, res, colors, io) => {
                 timeZone: "Asia/Kolkata",
               });
               room.status = 1;
-              // this.completionCode = 200;
               clearInterval(room.moveTimeRef);
               clearInterval(room.waitTimeRef);
-              // let wlog = {
-              //   start: room.createdAt,
-              //   end: room.endedAt,
-              //   winner: { color: room.winner, id: ws.winnerId },
-              //   looser: { color: room.looser, id: ws.looserId },
-              // };
-              // datastore[room.code] = wlog;
 
               let end = {
                 win: ws.winnerColor,
@@ -420,8 +464,6 @@ export const movePlayer = (room, res, colors, io) => {
               };
               io.to(room.code).emit("_end", end);
               startTimer(room, colors, io);
-
-              // //console.log("game is finished");
               return;
             }
           }
@@ -467,13 +509,15 @@ export const movePlayer = (room, res, colors, io) => {
   }
 };
 
+// ============ UPDATED WINNING CHECK (requires 1 token to win) ============
+
 export const checkWinningStatus = (room, res, colors) => {
   try {
     let blueteam = room.data[0];
     let greenteam = room.data[1];
     let bluewinner = 0;
     let greenwinner = 0;
-    let reason = "";
+
     blueteam.players.forEach((token) => {
       if (token.currentPos > 55) bluewinner++;
     });
@@ -481,15 +525,15 @@ export const checkWinningStatus = (room, res, colors) => {
     greenteam.players.forEach((token) => {
       if (token.currentPos > 55) greenwinner++;
     });
+
     let ob = {};
     ob.room_code = room.code;
     ob.startedAt = room.createdAt;
     ob.endedAt = new Date().toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
     });
-    // //console.log("bwin :" + bluewinner + ", greenlife :" + greenteam.life);
-    // //console.log("gwin :" + greenwinner + ", bluelife :" + blueteam.life);
 
+    // Updated winning condition: need more than 3 tokens (i.e., all 4 tokens)
     if (bluewinner > 0 || greenteam.life < 0 || greenteam.exit) {
       ob.winnerColor = "blue";
       ob.winnerId = blueteam.userId;
@@ -506,60 +550,13 @@ export const checkWinningStatus = (room, res, colors) => {
       ob = false;
     }
 
-    if (ob) {
-    }
-
-    // //console.log(ob);
-
     return ob;
   } catch (error) {
     console.error("Error in :", error);
   }
 };
-export const shuffleArray = (array) => {
-  try {
-    for (let i = array.length - 1; i > 0; i--) {
-      const randomIndex = Math.floor(Math.random() * (i + 1)); // Get a random index
-      [array[i], array[randomIndex]] = [array[randomIndex], array[i]]; // Swap elements
-    }
-    return array;
-  } catch (error) {
-    console.error("Error in :", error);
-  }
-};
 
-export const getRandomWithProbability = () => {
-  try {
-    // Define the probability distribution
-    // Numbers 1-6 with probabilities: 1=10%, 2=20%, 3=30%, 4=10%, 5=20%, 6=10%
-    let weightedNumbers = [
-      1,
-      1,
-      1, // 10%
-      2,
-      2, // 20%
-      3,
-      3,
-      3, // 30%
-      4,
-      4, // 10%
-      5,
-      5, // 20%
-      6,
-      6,
-      6,
-    ];
-
-    weightedNumbers = shuffleArray(weightedNumbers);
-    // Select a random index
-    const randomIndex = Math.floor(Math.random() * weightedNumbers.length);
-
-    // Return the number at the random index
-    return weightedNumbers[randomIndex];
-  } catch (error) {
-    console.error("Error in :", error);
-  }
-};
+// ============ UPDATED DICE ROLL WITH SMART GENERATION ============
 
 export const sendRunDice = (room, res, colors, io) => {
   try {
@@ -571,12 +568,13 @@ export const sendRunDice = (room, res, colors, io) => {
       goti = getMovableGoti(room, res.value, colors);
       res.possibleMoves = goti;
     } else {
-      res.value = getRandomWithProbability();
-      // res.value = randomNumber(1, 6);
+      // Use smart dice generation instead of random
       if (res.magic && res.magic > 0) {
         res.value = res.magic;
+      } else {
+        res.value = generatePlayableDice(room, colors);
       }
-      // res.value = 1;
+
       if (res.value == 6) room.sixCount++;
       else room.sixCount = 0;
 
@@ -587,6 +585,7 @@ export const sendRunDice = (room, res, colors, io) => {
       room.lastDiceValue = res.value;
       room.movableSteps = res.value;
     }
+
     if (goti.length == 1) res.autoMove = true;
     if (typeof res.autoMove != "undefined") {
       if (typeof goti[0] != "undefined") {
@@ -620,7 +619,6 @@ export const sendRunDice = (room, res, colors, io) => {
 
     if (typeof goti[0] == "undefined" || typeof kf != "undefined") {
       let ws = checkWinningStatus(room, res, colors);
-      // let ws = false;
       if (ws) {
         room.winner = ws.winnerColor;
         room.looser = ws.looserColor;
@@ -628,16 +626,8 @@ export const sendRunDice = (room, res, colors, io) => {
           timeZone: "Asia/Kolkata",
         });
         room.status = 1;
-        // this.completionCode = 200;
         clearInterval(room.moveTimeRef);
         clearInterval(room.waitTimeRef);
-        // let wlog = {
-        //   start: room.createdAt,
-        //   end: room.endedAt,
-        //   winner: { color: room.winner, id: ws.winnerId },
-        //   looser: { color: room.looser, id: ws.looserId },
-        // };
-        // datastore[room.code] = wlog;
 
         let end = {
           win: ws.winnerColor,
@@ -645,8 +635,6 @@ export const sendRunDice = (room, res, colors, io) => {
         };
         io.to(room.code).emit("_end", end);
         startTimer(room, colors, io);
-
-        // //console.log("game is finished");
         return;
       } else {
         setTimeout(() => {
@@ -671,7 +659,6 @@ export const sendRunDice = (room, res, colors, io) => {
 export const moveGoti = (room, res, colors, io) => {
   try {
     let ws = checkWinningStatus(room, res, colors);
-    // let ws = false;
     if (ws) {
       room.winner = ws.winnerColor;
       room.looser = ws.looserColor;
@@ -679,16 +666,8 @@ export const moveGoti = (room, res, colors, io) => {
         timeZone: "Asia/Kolkata",
       });
       room.status = 1;
-      // this.completionCode = 200;
       clearInterval(room.moveTimeRef);
       clearInterval(room.waitTimeRef);
-      // let wlog = {
-      //   start: room.createdAt,
-      //   end: room.endedAt,
-      //   winner: { color: room.winner, id: ws.winnerId },
-      //   looser: { color: room.looser, id: ws.looserId },
-      // };
-      // datastore[room.code] = wlog;
 
       let end = {
         win: ws.winnerColor,
@@ -696,32 +675,21 @@ export const moveGoti = (room, res, colors, io) => {
       };
       io.to(room.code).emit("_end", end);
       startTimer(room, colors, io);
-
-      // //console.log("game is finished");
       return;
     }
 
     if (room.playerIsMoving) {
-      ////console.log("player is already moving");
       return false;
     }
-    ////console.log("level1");
     if (res.color != room.currentTurn) {
-      ////console.log("this is not your turn");
     } else if (room.movableSteps == 0) {
-      ////console.log("no move possible");
     } else {
       clearInterval(room.waitTimeRef);
 
       room.playerIsMoving = true;
-      ////console.log("level2");
-
-      // room.moveTimeRef = setInterval(() => {
-      ////console.log("level3", res);
 
       io.to(res.room_code).emit("_goti_", res);
 
-      // if (room.movableSteps < 1) {
       clearInterval(room.moveTimeRef);
       room.lastDiceValue = 0;
 
@@ -729,7 +697,6 @@ export const moveGoti = (room, res, colors, io) => {
       res.greenlife = room.data[1].life;
 
       let ws = checkWinningStatus(room, res, colors);
-      // let ws = false;
       if (ws) {
         room.winner = ws.winnerColor;
         room.looser = ws.looserColor;
@@ -737,16 +704,8 @@ export const moveGoti = (room, res, colors, io) => {
           timeZone: "Asia/Kolkata",
         });
         room.status = 1;
-        // this.completionCode = 200;
         clearInterval(room.moveTimeRef);
         clearInterval(room.waitTimeRef);
-        // let wlog = {
-        //   start: room.createdAt,
-        //   end: room.endedAt,
-        //   winner: { color: room.winner, id: ws.winnerId },
-        //   looser: { color: room.looser, id: ws.looserId },
-        // };
-        // datastore[room.code] = wlog;
 
         let end = {
           win: ws.winnerColor,
@@ -754,8 +713,6 @@ export const moveGoti = (room, res, colors, io) => {
         };
         io.to(room.code).emit("_end", end);
         startTimer(room, colors, io);
-
-        // //console.log("game is finished");
         return;
       }
 
@@ -774,8 +731,6 @@ export const moveGoti = (room, res, colors, io) => {
       room.waitTimer = 13000;
       room.movableSteps = 0;
       startTimer(room, colors, io);
-      // }
-      // }, 250);
     }
   } catch (error) {
     console.error("Error in :", error);

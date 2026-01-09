@@ -306,13 +306,17 @@ export const AddMoney2 = () => {
                     <div className="text-center small my-3">
                       {t("payment_qr_msg")}
                     </div>
-                    <div className="d-flex gap-2">
-                      <Button1
-                        text={t("checking_msg")}
-                        class="btn-dark w-100 my-2"
-                        working={true}
-                      />
 
+                    <div className="d-flex ">
+                      <div style={{ opacity: 0, pointerEvents: 'none', width: '100%' }}>
+                        <Button1
+                          text={t("checking_msg")}
+                          class="btn-dark w-100 my-2"
+                          working={true}
+                        />
+                      </div>
+                    </div>
+                    <div className="d-flex w-100">
                       <Button1
                         text={t("cancel_deposit_btn")}
                         class="btn-danger w-100 my-2"

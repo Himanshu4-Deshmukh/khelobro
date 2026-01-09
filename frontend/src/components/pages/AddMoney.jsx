@@ -303,27 +303,27 @@ export const AddMoney = () => {
                   <div>
                     {btnlink && (
                       <a
-  href={btnlink}
-  className="w-100 py-3 mt-3 text-center d-block"
-  style={{
-    backgroundColor: "#01B2ED",
-    color: "white",
-    borderRadius: "8px",
-    fontWeight: "600",
-    fontSize: "16px",
-    textDecoration: "none",
-  }}
->
-  <IoShieldCheckmark style={{ marginRight: "6px", verticalAlign: "middle" }} />
-  Pay Securely {am > 0 && <>₹{parseInt(am)}</>}
-</a>
+                        href={btnlink}
+                        className="w-100 py-3 mt-3 text-center d-block"
+                        style={{
+                          backgroundColor: "#01B2ED",
+                          color: "white",
+                          borderRadius: "8px",
+                          fontWeight: "600",
+                          fontSize: "16px",
+                          textDecoration: "none",
+                        }}
+                      >
+                        <IoShieldCheckmark style={{ marginRight: "6px", verticalAlign: "middle" }} />
+                        Pay Securely {am > 0 && <>₹{parseInt(am)}</>}
+                      </a>
                     )}
                   </div>
                   <div>
                     <div className="text-center small my-3">
                       {t("click on the above button to pay using paytm app")}
                     </div>
-                    <div className="d-flex gap-2">
+                    {/* <div className="d-flex gap-2">
                       <Button1
                         text={t("checking_msg")}
                         class="btn-dark w-100 my-2"
@@ -336,7 +336,23 @@ export const AddMoney = () => {
                         action={cancelPayment}
                         working={working}
                       />
+                    </div> */}
+                    <div className="d-flex gap-2 w-100">
+                      <div style={{ opacity: 0, pointerEvents: 'none', width: '100%' }}>
+                        <Button1
+                          text={t("checking_msg")}
+                          class="btn-dark w-100 my-2"
+                          working={true}
+                        />
+                      </div>
                     </div>
+                    <Button1
+                      text={t("cancel_deposit_btn")}
+                      class="btn-danger w-100 my-2"
+                      action={cancelPayment}
+                      working={working}
+                    />
+
                   </div>
                 </motion.div>
               )}
