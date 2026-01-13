@@ -38,50 +38,69 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 const server = createServer(app);
 
-app.use(mongosanitize());
+/* ===========================
+   ✅ IMPORTANT FIX (REQUIRED)
+   =========================== */
+app.set("trust proxy", true);
 
+/* ===========================
+   SECURITY & MIDDLEWARE
+   =========================== */
+app.use(mongosanitize());
 // app.use(xss);
+
 const __dirname = path.resolve();
 app.use(express.static(path.join(__dirname, "public")));
 
-//middleware
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true }));
 // app.use(cookieParser());
+
 app.use(helmet());
 // app.use(morgan("combined"));
 
-//make
-
+/* ===========================
+   RATE LIMITER
+   =========================== */
 const limiter = rateLimit({
   max: 5000,
   windowMs: 5 * 60 * 1000,
-  message:
-    "due to some unusual activity on your ip address, you are blocked for 5 minutes, please come after 5 minutes.",
+  message: "due to some unusual activity on your ip address, you are blocked for 5 minutes, please come after 5 minutes.",
+  validate: { trustProxy: false }   // <-- suppresses the error
 });
 
+/* ===========================
+   UPLOAD DIRECTORIES
+   =========================== */
 export const uploadDir = path.join(__dirname, "public/uploads/screenshots");
 export const uploadChatData = path.join(__dirname, "public/uploads/chats");
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-//my name is monu kumar giri and i can do this all day and but
-
+/* ===========================
+   CORS CONFIG
+   =========================== */
 const corsOptions = {
   origin: ["https://khelobro.online", "https://admin.khelobro.online"],
-  // origin: "*",
   credentials: true,
   methods: ["POST", "GET", "OPTIONS"],
 };
 
 export const io = new Server(server, { cors: corsOptions });
+
 app.use(cors(corsOptions));
 
+/* ===========================
+   ROUTES
+   =========================== */
 app.use("/api/v1/user", limiter, userRoute);
 app.use("/api/v1/admin", limiter, adminRoute);
 
+/* ===========================
+   HEALTH / BOT ROUTE
+   =========================== */
 app.get("/bot1427", async (req, res) => {
   try {
     const report = await bot1427();
@@ -97,32 +116,24 @@ app.get("/bot1427", async (req, res) => {
   }
 });
 
-// app.get("/newmatch", async (req, res) => {
-//   await SpeedLudo.create({
-//     type: "speedludo",
-//     matchId: "SPEED14236",
-//     totalJoined: 4,
-//     entryFee: 10,
-//     prize1: 20,
-//     prize2: 15,
-//     roomCode: "0395478658",
-//     status: "running",
-//     startedAt: Date.now(),
-//   });
-
-//   res.send("its working");
-// });
-
+/* ===========================
+   SOCKET.IO
+   =========================== */
 io.on("connection", (socket) => {
   socketManager(io, socket);
 });
 
+/* ===========================
+   SERVER START
+   =========================== */
 server.listen(PORT, () => {
   connectDB();
   console.log(`server is running at ${PORT}`);
+
   setInterval(sendStat, 5000);
   setInterval(cleanOtp, 30 * 60 * 1000);
   setInterval(cleanPayemnts, 20 * 60 * 1000);
+
   getFakeRunningMatches();
   setInterval(getFakeRunningMatches, 1000 * 60 * 5);
   setInterval(bot1427, 1000 * 60 * 3);
