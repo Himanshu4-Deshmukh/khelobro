@@ -4,6 +4,11 @@ import { WalletButton2 } from "./WalletButton2";
 import { Link } from "react-router-dom";
 
 export const UserOnlineMatchesItem2 = ({ match }) => {
+  // Add safety check for hostData
+  if (!match || !match.hostData) {
+    return null;
+  }
+
   return (
     <>
       <div
@@ -18,15 +23,15 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
           <div className="d-flex justify-content-between p-2">
             <div className="d-flex align-items-start  gap-2">
               <img
-                src={`/assets/avatars/${match.hostData.profilePic}`}
+                src={`/assets/avatars/${match.hostData?.profilePic || 'default.png'}`}
                 height="40px"
                 width="40px"
                 className="rounded border"
               />
               <div style={{ lineHeight: "18px" }}>
                 <div className="fw-bold small text-dark d-flex align-items-center gap-1">
-                  <span>{match.hostData.fullName}</span>{" "}
-                  {match.hostData.kyc ? (
+                  <span>{match.hostData?.fullName || 'Unknown'}</span>{" "}
+                  {match.hostData?.kyc ? (
                     <MdVerified
                       className="text-success"
                       title="KYC Completed"
@@ -36,7 +41,7 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
                   )}
                 </div>
                 <div>
-                  {match.blue.result == "winner" ? (
+                  {match.blue?.result == "winner" ? (
                     <span className="bg-success text-white xs-small fw-bold px-1 rounded p-0">
                       Winner
                     </span>
@@ -44,7 +49,7 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
                     ""
                   )}
 
-                  {match.blue.result == "looser" ? (
+                  {match.blue?.result == "looser" ? (
                     <span className="bg-danger text-white xs-small fw-bold px-1 rounded p-0">
                       Looser
                     </span>
@@ -57,15 +62,15 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
             <div>
               <img src="/assets/vv.png" height="40px" />
             </div>
-            {!match.green.userId && (
+            {!match.green?.userId && (
               <div className="d-flex align-items-center">no joiner</div>
             )}
-            {match.green.userId && (
+            {match.green?.userId && match.joinerData && (
               <div className="d-flex align-items-start  gap-2">
                 <div style={{ lineHeight: "18px" }}>
                   <div className="fw-bold small text-dark d-flex justify-content-end align-items-center gap-1">
-                    <span>{match.joinerData.fullName}</span>{" "}
-                    {match.joinerData.kyc ? (
+                    <span>{match.joinerData?.fullName || 'Unknown'}</span>{" "}
+                    {match.joinerData?.kyc ? (
                       <MdVerified
                         className="text-success"
                         title="KYC Completed"
@@ -76,14 +81,14 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
                   </div>
                   <div className="text-end">
                     {" "}
-                    {match.green.result == "winner" ? (
+                    {match.green?.result == "winner" ? (
                       <span className="bg-success text-white xs-small fw-bold px-1 rounded p-0">
                         Winner
                       </span>
                     ) : (
                       ""
                     )}
-                    {match.green.result == "looser" ? (
+                    {match.green?.result == "looser" ? (
                       <span className="bg-danger text-white xs-small fw-bold px-1 rounded p-0">
                         Looser
                       </span>
@@ -93,7 +98,7 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
                   </div>
                 </div>
                 <img
-                  src={`/assets/avatars/${match.joinerData.profilePic}`}
+                  src={`/assets/avatars/${match.joinerData?.profilePic || 'default.png'}`}
                   height="40px"
                   width="40px"
                   className="rounded border"
@@ -114,9 +119,8 @@ export const UserOnlineMatchesItem2 = ({ match }) => {
                 </button>
               )}
               <button
-                className={`btn btn-sm p-0 p-1 px-2 m-0 xs-small ${
-                  match.status == "waiting" ? "btn-info" : ""
-                } ${match.status == "cancelled" ? "btn-danger" : ""} 
+                className={`btn btn-sm p-0 p-1 px-2 m-0 xs-small ${match.status == "waiting" ? "btn-info" : ""
+                  } ${match.status == "cancelled" ? "btn-danger" : ""} 
               ${match.status == "completed" ? "btn-success" : ""}
               ${match.status == "running" ? "btn-warning" : ""}
               `}
