@@ -5274,9 +5274,22 @@ export async function aggregateChatList() {
 export const fetchChatList = async (req, res) => {
   try {
     const data = await aggregateChatList();
-    return res.json({ success: true, data });
+
+    // If called as an HTTP handler (with Express res), send JSON response
+    if (res) {
+      return res.json({ success: true, data });
+    }
+
+    // If called without res (e.g. from Socket.IO), just return the data
+    return data;
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    // If we have res, send structured error response
+    if (res) {
+      return res.json({ success: false, message: err.message });
+    }
+
+    // When called without res (e.g. from Socket.IO), rethrow so caller can handle/log
+    throw err;
   }
 };
 
