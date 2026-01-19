@@ -112,7 +112,7 @@
   "page_terms": "Terms & Conditions",
   "credit_to_wallet": "Credited to Wallet",
   "debit_from_wallet": "Debited from Wallet",
-  "txn_cancel": "Transaction Canceled",
+  "txn_cancel": "Transaction Canceled By Admin : Reason Upi Payment Blocked",
   "txn_failed": "Transaction Failed",
   "pending": "Pending",
   "completed": "Completed",
