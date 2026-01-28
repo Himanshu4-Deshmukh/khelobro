@@ -39,8 +39,8 @@ const Homepage = () => {
     classicOnline: "classic-online",
     speedOnline: "speedludo",
     quickOnline: "quickludo",
-
     classic1Token: "classic-1token",
+    ludoLeague: "tournament",
   };
 
   useEffect(() => {

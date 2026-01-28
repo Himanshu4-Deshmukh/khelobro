@@ -87,6 +87,11 @@ export const Sidebar = () => {
                     to="/manage-1token-matches"
                     title="Classic 1 Token Matches"
                   />
+                                    <SidebarNavItem
+                    icon={<FaPeopleGroup />}
+                    to="/manage-tournaments"
+                    title="Manage Tournaments"
+                  />
                   <SidebarNavItem
                     icon={<CgDice6 />}
                     to="/manage-speed-matches"

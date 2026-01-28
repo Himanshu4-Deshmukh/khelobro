@@ -29,6 +29,9 @@ import FakeOnline from "../models/fakeonline.model.js";
 import FakeOnline2 from "../models/fakeonline2.model.js";
 import { QuickLudo } from "../models/quickludo.js";
 import FakeQuick from "../models/fakequick.model.js";
+import { Tournament } from "../models/tournaments.js";
+import { TMatch } from "../models/tmatch.js";
+
 
 // ====== NEW: Track timeouts for unjoined ("open") matches ======
 const openMatchTimeouts = new Map(); // matchId → timeoutId
@@ -4288,13 +4291,25 @@ export const isAnyMatchRunning = async (req) => {
       },
     ],
   }).sort({ createdAt: -1 });
+    const runningmatch6 = await TMatch.findOne({
+    $and: [
+      { status: "running" }, // Exclude the current matchId
+      {
+        $or: [
+          { "blue.userId": req.user._id }, // Condition 1: Host userId matches
+          // Condition 2: Joiner userId matches
+        ],
+      },
+    ],
+  }).sort({ createdAt: -1 });
 
   if (
     runningmatch ||
     runningmatch2 ||
     runningmatch3 ||
     runningmatch4 ||
-    runningmatch5
+    runningmatch5 ||
+    runningmatch6
   ) {
     return true;
   } else {
@@ -5033,3 +5048,439 @@ export const cancelQuickLudo = async (req, res) => {
   }
 };
 
+export const fetchTournaments = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const matches = {};
+
+    // 1️⃣ Running tournaments
+    matches.omatch = await Tournament.find({ status: "running" })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // 2️⃣ Tournament IDs where user played/playing
+    const tournamentIds = await TMatch.distinct("tournamentId", {
+      "blue.userId": userId,
+    });
+
+    // 3️⃣ Tournament history
+    matches.thistory = await Tournament.find({
+      _id: { $in: tournamentIds },
+    }).lean();
+
+    // 4️⃣ User playing status (bulk)
+    const runningUserMatches = await TMatch.find(
+      {
+        "blue.userId": userId,
+        status: "running",
+      },
+      { tournamentId: 1 }
+    ).lean();
+
+    const playingTournamentSet = new Set(
+      runningUserMatches.map((m) => String(m.tournamentId))
+    );
+
+    // 5️⃣ Joined count per tournament (bulk)
+    const joinedCounts = await TMatch.aggregate([
+      {
+        $match: {
+          status: { $in: ["running", "completed"] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            tournamentId: "$tournamentId",
+            userId: "$blue.userId",
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.tournamentId",
+          totalJoined: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const joinedMap = {};
+    joinedCounts.forEach((j) => {
+      joinedMap[String(j._id)] = j.totalJoined;
+    });
+
+    // 6️⃣ Attach flags to tournaments
+    const attachMeta = (list) =>
+      list.map((t) => ({
+        ...t,
+        isUserPlaying: playingTournamentSet.has(String(t._id)),
+        totalJoined: joinedMap[String(t._id)] || 0,
+      }));
+
+    matches.omatch = attachMeta(matches.omatch);
+    matches.thistory = attachMeta(matches.thistory);
+
+    const money = await balance(req);
+
+    return res.json({
+      success: true,
+      matches,
+      balance: money,
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+export const fetchTournament = async (req, res) => {
+  try {
+    const match = await Tournament.findOne({
+      _id: req.body.tournamentId,
+    })
+      .sort({
+        createdAt: -1,
+      })
+      .lean();
+
+    // 🔹 Check if user is playing in this tournament
+    const playing = await TMatch.findOne({
+      tournamentId: match._id,
+      $or: [{ "blue.userId": req.user._id }],
+      status: "running",
+    });
+
+    match.isUserPlaying = !!playing; // true / false
+
+    match.activeMatch = playing;
+
+    // 🔹 Count total joined players in this tournament
+    const joinedCount = await TMatch.aggregate([
+      {
+        $match: {
+          tournamentId: String(match._id),
+          status: { $in: ["running", "completed"] },
+        },
+      },
+      {
+        $group: {
+          _id: "$blue.userId",
+        },
+      },
+      {
+        $count: "totalJoined",
+      },
+    ]);
+
+    match.totalJoined = joinedCount.length ? joinedCount[0].totalJoined : 0;
+
+    match.leaderboard = await TMatch.aggregate([
+      // 1️⃣ Match tournament
+      {
+        $match: {
+          tournamentId: match._id.toString(), // ✅ ObjectId
+        },
+      },
+
+      // 2️⃣ Highest score per user
+      {
+        $group: {
+          _id: "$blue.userId",
+          highestScore: { $max: "$blue.score" },
+        },
+      },
+
+      // 3️⃣ Join users
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+
+      // 4️⃣ Join transactions (reward credits)
+      {
+        $lookup: {
+          from: "transactions",
+          let: { userId: "$_id", tournamentId: match._id },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$userId", "$$userId"] },
+                    { $eq: ["$tournamentId", "$$tournamentId"] },
+                    { $eq: ["$txnType", "credit"] },
+                    { $eq: ["$txnCtg", "reward"] },
+                  ],
+                },
+              },
+            },
+            {
+              $group: {
+                _id: null,
+                totalReward: { $sum: "$amount" },
+              },
+            },
+          ],
+          as: "reward",
+        },
+      },
+
+      // 5️⃣ Flatten reward
+      {
+        $addFields: {
+          rewardAmount: {
+            $ifNull: [{ $arrayElemAt: ["$reward.totalReward", 0] }, 0],
+          },
+        },
+      },
+
+      // 6️⃣ Sort leaderboard
+      { $sort: { highestScore: -1 } },
+
+      // 7️⃣ Final shape
+      {
+        $project: {
+          _id: 0,
+          userId: "$_id",
+          highestScore: 1,
+          rewardAmount: 1,
+          fullName: "$user.fullName",
+          mobileNumber: "$user.mobileNumber",
+        },
+      },
+    ]);
+
+    const joined = await TMatch.findOne({
+      tournamentId: match._id,
+      "blue.userId": req.user._id,
+    });
+
+    if (!joined) match.leaderboard = [];
+
+    return res.json({
+      success: true,
+      match: match,
+    });
+  } catch (error) {
+    ////console.log("fetchmatch", error);
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
+export const joinTournament = async (req, res) => {
+  try {
+    const userBalance = await balance(req);
+    const tournamentId = req.body.tournamentId;
+
+    const isAMR = await isAnyMatchRunning(req);
+    if (isAMR) {
+      return res.json({
+        success: false,
+        message: "already_in_match",
+      });
+    }
+
+    const game = await Tournament.findOne({ _id: tournamentId });
+
+    if (!game) {
+      return res.json({
+        success: false,
+        message: "Tournament Not Found",
+      });
+    }
+
+    if (game.status != "running") {
+      return res.json({
+        success: false,
+        message: "Tournament is closed",
+      });
+    }
+
+    if (game.entryFee > userBalance.balance) {
+      return res.json({
+        success: false,
+        message: "less_balance_msg",
+      });
+    }
+
+    const openmatch = await TMatch.findOne({
+      status: "running",
+      "blue.userId": req.user._id,
+    });
+
+    const totalentries = await TMatch.countDocuments({
+      tournamentId: game._id,
+      "blue.userId": req.user._id,
+    });
+
+    // If user has NO previous entries → check limit + increment
+    if (totalentries < 1) {
+      // Try to increment atomically
+      const updatedTournament = await Tournament.findOneAndUpdate(
+        {
+          _id: tournamentId,
+          joined: { $lt: game.totalAllowedEntries }, // ensures limit not reached
+        },
+        {
+          $inc: { joined: 1 },
+        },
+        { new: true }
+      );
+
+      // If update failed → limit already full
+      if (!updatedTournament) {
+        return res.json({
+          success: false,
+          message: "no more new entries allowed",
+        });
+      }
+    }
+
+    if (totalentries >= game.totalAllowedEntriesPerUser) {
+      return res.json({
+        success: false,
+        message: "you reached your maximum entries limit for this tournament",
+      });
+    }
+
+    // If totalentries >= 1 → skip checking, user already joined
+
+    if (openmatch) {
+      return res.json({
+        success: false,
+        message: "you are already playing a tournament",
+      });
+    } else {
+      await QuickLudo.deleteMany({
+        $and: [
+          { status: "waiting" },
+          {
+            $or: [{ "blue.userId": req.user._id }],
+          },
+        ],
+      });
+
+      await OnlineGame.deleteMany({
+        $and: [
+          { status: "waiting" },
+          {
+            $or: [{ "blue.userId": req.user._id }],
+          },
+        ],
+      });
+
+      await OnlineGame2.deleteMany({
+        $and: [
+          { status: "waiting" },
+          {
+            $or: [{ "blue.userId": req.user._id }],
+          },
+        ],
+      });
+
+      await SpeedLudo.deleteMany({
+        $and: [
+          { status: "waiting" },
+          {
+            $or: [{ "blue.userId": req.user._id }],
+          },
+        ],
+      });
+
+      const newMatch = {
+        tournamentId: game._id,
+        type: "tmatch",
+        moves: game.moves,
+        blue: {
+          userId: req.user._id,
+        },
+        entryFee: game.entryFee,
+        status: "running",
+        roomCode: generateUniqueRoomCode(),
+      };
+      const m = await TMatch.create(newMatch);
+
+      const host = await User.findOne({ _id: m.blue.userId });
+      const hostBalance = await ubalance(host);
+
+      const hostTxnExists = await Transaction.exists({
+        userId: host._id,
+        matchId: m._id,
+        txnCtg: "bet",
+        txnType: "debit",
+        status: "completed",
+      });
+      if (!hostTxnExists) {
+        let neededMoneyHost = m.entryFee;
+        const newTxnhost = {
+          txnId: await newTxnId(),
+          userId: host._id,
+          amount: m.entryFee,
+          cash: 0,
+          reward: 0,
+          bonus: 0,
+          remark: "League Joined",
+          status: "completed",
+          txnType: "debit",
+          txnCtg: "bet",
+          matchId: m._id,
+          tournamentId: game._id,
+        };
+        if (neededMoneyHost > 0) {
+          newTxnhost.cash = Math.min(neededMoneyHost, hostBalance.cash);
+          neededMoneyHost -= newTxnhost.cash;
+        }
+        if (neededMoneyHost > 0) {
+          newTxnhost.bonus = Math.min(neededMoneyHost, hostBalance.bonus);
+          neededMoneyHost -= newTxnhost.bonus;
+        }
+        if (neededMoneyHost > 0) {
+          newTxnhost.reward = Math.min(neededMoneyHost, hostBalance.reward);
+          neededMoneyHost -= newTxnhost.reward;
+        }
+        await Transaction.create(newTxnhost);
+
+        await User.updateOne(
+          { _id: host._id },
+          {
+            $inc: {
+              "balance.reward": -newTxnhost.reward,
+              "balance.cash": -newTxnhost.cash,
+              "balance.bonus": -newTxnhost.bonus,
+            },
+          }
+        );
+      }
+
+      await _log({
+        matchId: m._id,
+        message:
+          req.user.fullName +
+          "(" +
+          req.user.mobileNumber +
+          ") joined tournament",
+      });
+      return res.json({
+        success: true,
+        data: m,
+      });
+    }
+  } catch (error) {
+    ////console.log("createMatch", error);
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
