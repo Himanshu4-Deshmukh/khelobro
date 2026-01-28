@@ -20,6 +20,11 @@ const txnSchema = new mongoose.Schema(
       ref: "Match",
       default: null,
     },
+    tournamentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Tournament",
+      default: null,
+    },
     amount: {
       type: Number,
       required: true,

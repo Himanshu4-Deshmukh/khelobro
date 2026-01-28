@@ -42,6 +42,11 @@ import {
   updateUserStatus,
   updateWithdrawStatus,
   verifyLogin,
+  addTournament,
+  cloneTournament,
+  endTournament,
+  fetchTournament,
+  fetchTournaments,
 } from "../controllers/admin/account.controller.js";
 import auth from "../middlewares/adminauth.middleware.js";
 import { fetchGames } from "../controllers/match.controller.js";
@@ -118,4 +123,13 @@ router.route("/fetchGameJson").post(auth, fetchGameJson);
 router.route("/deleteAdmin").post(auth, deleteAdmin);
 router.route("/deleteParam").post(auth, deleteParam);
 router.route("/fetchUserList").post(auth, _fetchChatList);
+
+
+
+router.route("/addNewTournament").post(auth, addTournament);
+router.route("/fetchTournaments").post(auth, fetchTournaments);
+router.route("/fetchTournament").post(auth, fetchTournament);
+router.route("/endTournament").post(auth, endTournament);
+router.route("/cloneTournament").post(auth, cloneTournament);
+
 export default router;

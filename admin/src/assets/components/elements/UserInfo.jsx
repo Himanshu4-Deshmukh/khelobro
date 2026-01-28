@@ -107,6 +107,23 @@ export const UserInfo = ({ user, refresh, isSuperadmin = false }) => {
                     </div>
                   </div>
                 )}
+
+                <div className="d-flex align-items-center">
+                  <div className="form-check form-switch">
+                    <input
+                      name="_y"
+                      value={flags._y ? "1" : "1"}
+                      className="form-check-input"
+                      type="checkbox"
+                      id="ySwitch"
+                      onChange={() => toggleFlag("_y")}
+                      checked={flags._y}
+                    />
+                  </div>
+                  <div className="xs-small text-center">
+                    {flags._y ? "Name Change" : "Name Change"}
+                  </div>
+                </div>
               </PostForm>
             </div>
           </div>

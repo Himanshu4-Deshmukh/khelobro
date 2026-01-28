@@ -5,6 +5,8 @@ export const CLASSIC_ONLINE_SERVER =
 export const CLASSIC_1TOKEN_SERVER =
   "https://classic-1token-server.khelobro.online";
 export const QUICK_LUDO_SERVER = "https://quick-ludo-server.khelobro.online";
+export const TOURNAMENT_LUDO_SERVER = "https://tournament-server.khelobro.online";
+
 
 // export const HOST = "http://localhost:3142";
 // export const CLASSIC_ONLINE_SERVER = "http://localhost:3143";
@@ -65,3 +67,10 @@ export const API_CLASSIC_1TOKEN_PLAY = "/user/playClassic1Token";
 export const API_CLASSIC_1TOKEN_CANCEL = "/user/cancelClassic1Token";
 
 export const API_FETCH_REFERRAL_LIST = "/user/fetchReferrals";
+
+export const API_FETCH_TOURNAMENTS = "/user/fetchTournaments";
+
+export const API_FETCH_TOURNAMENT = "/user/fetchTournament";
+
+export const API_JOIN_TOURNAMENT = "/user/joinTournament";
+

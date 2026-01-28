@@ -794,6 +794,57 @@ function isValidName(name) {
   return digitCount <= 5;
 }
 
+// export const updateMe = async (req, res) => {
+//   ////console.log(req.body);
+//   try {
+//     if (
+//       (req.body.fullName || req.body.fullName == "") &&
+//       (!isNotEmpty(req.body.fullName) || !isValidName(req.body.fullName))
+//     ) {
+//       return res.json({
+//         success: false,
+//         message: "fullname_check2",
+//       });
+//     }
+
+//     if (req.body.profilePic && !isNotEmpty(req.body.profilePic)) {
+//       return res.json({
+//         success: false,
+//         message: "noprofile_error",
+//       });
+//     }
+
+//     const up = {};
+
+//     up.fullName = req.body.fullName;
+
+//     if (req.body.profilePic) {
+//       up.profilePic = req.body.profilePic.split("?")[0];
+//     }
+
+//     if (req.body.upiId) up.upiId = req.body.upiId;
+//     if (req.body.bankName) up.bankName = req.body.bankName;
+//     if (req.body.bankAccountNo) up.bankAccountNo = req.body.bankAccountNo;
+//     if (req.body.bankIfscCode) up.bankIfscCode = req.body.bankIfscCode;
+
+//     await User.updateOne(
+//       { _id: req.user._id }, // Filter by user ID
+//       { $set: up } // Update the fullName field
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "profile_updated",
+//       name: req.body.fullName,
+//     });
+//   } catch (error) {
+//     return res.json({
+//       success: false,
+//       message: error.response ? error.response.data.message : error.message,
+//     });
+//   }
+// };
+
 export const updateMe = async (req, res) => {
   ////console.log(req.body);
   try {
@@ -815,6 +866,13 @@ export const updateMe = async (req, res) => {
     }
 
     const up = {};
+
+    if (req.body.fullName != req.user.fullName && req.user._y !== true) {
+      return res.json({
+        success: false,
+        message: "you are not allowed to change name",
+      });
+    }
 
     up.fullName = req.body.fullName;
 
