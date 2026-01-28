@@ -5,6 +5,8 @@ import { GrUserAdmin } from "react-icons/gr";
 import { IoMdChatboxes, IoMdInformationCircleOutline } from "react-icons/io";
 import { GiMoneyStack, GiPayMoney, GiTakeMyMoney } from "react-icons/gi";
 import { CgDice6 } from "react-icons/cg";
+import { FaPeopleGroup } from "react-icons/fa6";
+
 import {
   MdNearbyError,
   MdCancelPresentation,
@@ -88,6 +90,11 @@ export const Sidebar = () => {
                     title="Classic 1 Token Matches"
                   />
                                     <SidebarNavItem
+                    icon={<FaPeopleGroup />}
+                    to="/manage-tournaments"
+                    title="Manage Tournaments"
+                  />
+                  <SidebarNavItem
                     icon={<FaPeopleGroup />}
                     to="/manage-tournaments"
                     title="Manage Tournaments"
