@@ -113,6 +113,7 @@ export const socketHandlers = async (io, socket) => {
 
         if (gameData.status == "completed") {
           socket.emit("gohome");
+          return;
         }
 
         if (!rooms[gameData.roomCode]) {
@@ -129,9 +130,22 @@ export const socketHandlers = async (io, socket) => {
 
             delete roomCreationLocks[gameData.roomCode]; // Unlock
           } else {
-            // Room creation in progress, wait or return
-            setTimeout(() => socket.emit("gohome"), 100);
-            return;
+            // Room creation in progress – wait up to 1 s then continue
+            let waited = 0;
+            await new Promise((resolve) => {
+              const poll = setInterval(() => {
+                waited += 100;
+                if (rooms[gameData.roomCode] || waited >= 1000) {
+                  clearInterval(poll);
+                  resolve();
+                }
+              }, 100);
+            });
+            // If room still not available after waiting, give up gracefully
+            if (!rooms[gameData.roomCode]) {
+              console.error("Room creation timed out for", gameData.roomCode);
+              return;
+            }
           }
         }
 
@@ -178,24 +192,28 @@ export const socketHandlers = async (io, socket) => {
           const color = "blue";
           const colorIndex = colors[color];
           if (!gameData[color].user) return;
+
+          // Only register player data once (guard against reconnects / duplicate joins)
+          const alreadyJoined = room.data[colorIndex].userId != null;
+
           room.data[colorIndex].userId = gameData[color].user.username;
           room.data[colorIndex].deviceId = gameData[color].user.deviceId;
           room.data[colorIndex].fullName = gameData[color].user.fullName;
 
-          room.playersJoined++;
-          room.playerInfo[color] = {
-            userId: room.data[colorIndex].userId,
-            profile: gameData[color].user.profilePic,
-            _su: gameData[color].user._su,
-            fullName: gameData[color].user.fullName,
-            life: room.data[colorIndex].life,
-            score: room.data[colorIndex].score,
-          };
+          if (!alreadyJoined) {
+            room.playersJoined++;
+            room.playerInfo[color] = {
+              userId: room.data[colorIndex].userId,
+              profile: gameData[color].user.profilePic,
+              _su: gameData[color].user._su,
+              fullName: gameData[color].user.fullName,
+              life: room.data[colorIndex].life,
+              score: room.data[colorIndex].score,
+            };
+          }
 
           playerData.userId = room.data[colorIndex].userId;
           playerData.color = color;
-
-          room.status = 1;
 
           playerData.color = thiscolor;
           playerData._su = _su;
@@ -204,15 +222,19 @@ export const socketHandlers = async (io, socket) => {
           console.log("game started level 5");
           socket.emit("join_status", getRoomData(room, playerData));
           console.log("game started level 6");
-          if (room.status == 1) {
+
+          // Only start the game timer on the very first join – not on every reconnect
+          if (!alreadyJoined) {
+            room.status = 1;
             console.log("game started level 7");
-
             io.to(gameData.roomCode).emit("startgame");
-            //don nopt start the match until both are ready
+            // don not start the match until both are ready
             setTimeout(() => startTimer(room, colors, io), 1000);
+          } else if (room.status === 1) {
+            // Player is reconnecting to an already-running game – just re-emit startgame to this socket only
+            console.log("player reconnecting, re-emitting startgame");
+            socket.emit("startgame");
           }
-
-          // //console.log(room);
         }
       } catch (error) {
         console.error("Error in :", error);

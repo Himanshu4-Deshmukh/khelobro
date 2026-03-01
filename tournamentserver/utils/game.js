@@ -146,7 +146,7 @@ export const newTxnId = async () => {
 
 export const fetchGameData = async ({ gameUid, token, deviceId }) => {
   try {
-    const decode = await jwt.verify(token, "qwer");
+    const decode = await jwt.verify(token, process.env.JWT_SECRET_KEY || "qwertyuiopmbvsfghj545k");
     let user = null;
     if (decode) {
       user = await User.findOne({

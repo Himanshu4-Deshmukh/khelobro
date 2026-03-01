@@ -4291,7 +4291,7 @@ export const isAnyMatchRunning = async (req) => {
       },
     ],
   }).sort({ createdAt: -1 });
-    const runningmatch6 = await TMatch.findOne({
+  const runningmatch6 = await TMatch.findOne({
     $and: [
       { status: "running" }, // Exclude the current matchId
       {
@@ -5283,8 +5283,34 @@ export const joinTournament = async (req, res) => {
     const userBalance = await balance(req);
     const tournamentId = req.body.tournamentId;
 
-    const isAMR = await isAnyMatchRunning(req);
-    if (isAMR) {
+    // Check if user has any NON-tournament running match (ManualMatch, OnlineGame, SpeedLudo, QuickLudo)
+    // We intentionally exclude TMatch here because the openmatch check below handles that case.
+    const hasNonTournamentRunningMatch =
+      !!(await ManualMatch.findOne({
+        status: "running",
+        $or: [
+          { "host.userId": req.user._id, "host.result": null },
+          { "joiner.userId": req.user._id, "joiner.result": null },
+        ],
+      })) ||
+      !!(await OnlineGame.findOne({
+        status: "running",
+        $or: [{ "blue.userId": req.user._id }, { "green.userId": req.user._id }],
+      })) ||
+      !!(await OnlineGame2.findOne({
+        status: "running",
+        $or: [{ "blue.userId": req.user._id }, { "green.userId": req.user._id }],
+      })) ||
+      !!(await SpeedLudo.findOne({
+        status: "running",
+        $or: [{ "blue.userId": req.user._id }, { "green.userId": req.user._id }],
+      })) ||
+      !!(await QuickLudo.findOne({
+        status: "running",
+        $or: [{ "blue.userId": req.user._id }, { "green.userId": req.user._id }],
+      }));
+
+    if (hasNonTournamentRunningMatch) {
       return res.json({
         success: false,
         message: "already_in_match",

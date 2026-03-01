@@ -5806,3 +5806,170 @@ export const fetchGameJson = async (req, res) => {
     });
   }
 };
+
+// ─── Tournament Admin Controllers ────────────────────────────────────────────
+
+export const addTournament = async (req, res) => {
+  try {
+    const {
+      name,
+      moves,
+      entryFee,
+      firstPrize,
+      prizePool,
+      assuredWinners,
+      totalAllowedEntries,
+      totalAllowedEntriesPerUser,
+      scoring,
+      status,
+    } = req.body;
+
+    if (
+      !name ||
+      !moves ||
+      !entryFee ||
+      !firstPrize ||
+      !prizePool ||
+      !assuredWinners ||
+      !totalAllowedEntries ||
+      !totalAllowedEntriesPerUser ||
+      !scoring ||
+      scoring.length < 1
+    ) {
+      return res.json({ success: false, message: "Please fill all fields" });
+    }
+
+    const tournament = await Tournament.create({
+      name,
+      moves: Number(moves),
+      entryFee: Number(entryFee),
+      firstPrize: Number(firstPrize),
+      prizePool: Number(prizePool),
+      assuredWinners: Number(assuredWinners),
+      totalAllowedEntries: Number(totalAllowedEntries),
+      totalAllowedEntriesPerUser: Number(totalAllowedEntriesPerUser),
+      scoring,
+      status: status || "draft",
+    });
+
+    await _log({
+      message: `${req.admin.emailId} created tournament: ${name}`,
+    });
+
+    return res.json({ success: true, data: tournament });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
+export const cloneTournament = async (req, res) => {
+  try {
+    const { tournamentId } = req.body;
+    const original = await Tournament.findOne({ _id: tournamentId }).lean();
+    if (!original) {
+      return res.json({ success: false, message: "Tournament not found" });
+    }
+
+    const { _id, createdAt, updatedAt, joined, startedAt, completedAt, ...rest } = original;
+
+    const cloned = await Tournament.create({
+      ...rest,
+      name: rest.name + " (Copy)",
+      status: "draft",
+      joined: 0,
+      startedAt: null,
+      completedAt: null,
+    });
+
+    await _log({
+      message: `${req.admin.emailId} cloned tournament: ${original.name}`,
+    });
+
+    return res.json({ success: true, data: cloned });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
+export const endTournament = async (req, res) => {
+  try {
+    const { tournamentId } = req.body;
+
+    const tournament = await Tournament.findOneAndUpdate(
+      { _id: tournamentId, status: "running" },
+      { $set: { status: "completed", completedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!tournament) {
+      return res.json({
+        success: false,
+        message: "Tournament not found or already ended",
+      });
+    }
+
+    await _log({
+      message: `${req.admin.emailId} ended tournament: ${tournament.name}`,
+    });
+
+    return res.json({ success: true, data: tournament });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
+export const fetchTournaments = async (req, res) => {
+  try {
+    const limit = 20;
+    const page = req.body.page || 1;
+    const skip = (page - 1) * limit;
+
+    const tournaments = await Tournament.find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    return res.json({ success: true, data: tournaments });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
+export const fetchTournament = async (req, res) => {
+  try {
+    const { tournamentId } = req.body;
+    const tournament = await Tournament.findOne({ _id: tournamentId }).lean();
+
+    if (!tournament) {
+      return res.json({ success: false, message: "Tournament not found" });
+    }
+
+    // Attach joined matches count
+    const joinedCount = await TMatch.countDocuments({
+      tournamentId: String(tournament._id),
+      status: { $in: ["running", "completed"] },
+    });
+
+    tournament.totalJoined = joinedCount;
+
+    return res.json({ success: true, data: tournament });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
