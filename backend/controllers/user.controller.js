@@ -497,6 +497,9 @@ export const autoLogin = async (req, res) => {
           bankAccountNo: user.bankAccountNo,
           bankIfscCode: user.bankIfscCode,
           _y: user._y || false,
+          showPaytmDeposit: config.SHOW_PAYTM_DEPOSIT !== false,
+          showQrDeposit: config.SHOW_QR_DEPOSIT !== false,
+          showUpiDeposit: config.SHOW_UPI_DEPOSIT !== false,
         },
         kycData: user.kycData,
       });
