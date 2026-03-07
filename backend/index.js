@@ -83,7 +83,11 @@ if (!fs.existsSync(uploadDir)) {
    CORS CONFIG
    =========================== */
 const corsOptions = {
-  origin: ["https://khelobro.online", "https://admin.khelobro.online"],
+  origin: [
+    "https://khelobro.online",
+    "https://www.khelobro.online",
+    "https://admin.khelobro.online",
+  ],
   credentials: true,
   methods: ["POST", "GET", "OPTIONS"],
 };

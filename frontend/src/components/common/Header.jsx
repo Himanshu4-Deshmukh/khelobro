@@ -17,11 +17,12 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { setTextData } from "../../contexts/slices/authSlice";
 // import ReactPWAInstallProvider, { useReactPWAInstall } from "react-pwa-install";
-import { usePWAInstall } from "react-use-pwa-install";
 
 const Header = () => {
   // const { pwaInstall, supported, isInstalled } = useReactPWAInstall();
-  const install = usePWAInstall();
+  const [installPromptEvent, setInstallPromptEvent] = useState(null);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const PWA_INSTALLED_KEY = "khelobro_pwa_installed";
 
   const { t, i18n } = useTranslation();
   const { isAuth, textData } = useSelector((store) => store.auth);
@@ -52,8 +53,81 @@ const Header = () => {
     }
   }
 
+  const checkInstallStatus = async () => {
+    const isStandaloneMode =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true ||
+      document.referrer.startsWith("android-app://");
+
+    if (isStandaloneMode) {
+      localStorage.setItem(PWA_INSTALLED_KEY, "1");
+      setIsPwaInstalled(true);
+      return;
+    }
+
+    if (localStorage.getItem(PWA_INSTALLED_KEY) === "1") {
+      setIsPwaInstalled(true);
+      return;
+    }
+
+    if (typeof navigator.getInstalledRelatedApps === "function") {
+      try {
+        const relatedApps = await navigator.getInstalledRelatedApps();
+        if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+          localStorage.setItem(PWA_INSTALLED_KEY, "1");
+          setIsPwaInstalled(true);
+          return;
+        }
+      } catch (_err) {
+        // Ignore and continue fallback checks.
+      }
+    }
+
+    setIsPwaInstalled(false);
+  };
+
   useEffect(() => {
     fetchTextData();
+  }, []);
+
+  useEffect(() => {
+    checkInstallStatus();
+
+    const onBeforeInstallPrompt = (event) => {
+      event.preventDefault();
+      setInstallPromptEvent(event);
+    };
+
+    const onAppInstalled = () => {
+      localStorage.setItem(PWA_INSTALLED_KEY, "1");
+      setIsPwaInstalled(true);
+      setInstallPromptEvent(null);
+    };
+
+    const displayModeQuery = window.matchMedia("(display-mode: standalone)");
+    const onDisplayModeChange = () => {
+      checkInstallStatus();
+    };
+
+    if (displayModeQuery.addEventListener) {
+      displayModeQuery.addEventListener("change", onDisplayModeChange);
+    } else {
+      displayModeQuery.addListener(onDisplayModeChange);
+    }
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+    window.addEventListener("appinstalled", onAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", onAppInstalled);
+
+      if (displayModeQuery.removeEventListener) {
+        displayModeQuery.removeEventListener("change", onDisplayModeChange);
+      } else {
+        displayModeQuery.removeListener(onDisplayModeChange);
+      }
+    };
   }, []);
 
   return (
@@ -73,14 +147,19 @@ const Header = () => {
           </div>
 
           <div className="d-flex align-items-center gap-1">
-            {install && (
+            {!!installPromptEvent && !isPwaInstalled && (
               <Button2
                 icon={<MdInstallMobile />}
                 working={false}
                 text={t("app_install_btn")}
                 class="btn-primary text-white rounded-3"
-                action={() => {
-                  install();
+                action={async () => {
+                  await installPromptEvent.prompt();
+                  if (installPromptEvent.userChoice) {
+                    await installPromptEvent.userChoice;
+                  }
+                  setInstallPromptEvent(null);
+                  checkInstallStatus();
                 }}
               />
             )}
