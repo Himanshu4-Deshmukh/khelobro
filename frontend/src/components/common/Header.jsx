@@ -22,7 +22,6 @@ const Header = () => {
   // const { pwaInstall, supported, isInstalled } = useReactPWAInstall();
   const [installPromptEvent, setInstallPromptEvent] = useState(null);
   const [isPwaInstalled, setIsPwaInstalled] = useState(false);
-  const PWA_INSTALLED_KEY = "khelobro_pwa_installed";
 
   const { t, i18n } = useTranslation();
   const { isAuth, textData } = useSelector((store) => store.auth);
@@ -59,31 +58,20 @@ const Header = () => {
       window.navigator.standalone === true ||
       document.referrer.startsWith("android-app://");
 
-    if (isStandaloneMode) {
-      localStorage.setItem(PWA_INSTALLED_KEY, "1");
-      setIsPwaInstalled(true);
-      return;
-    }
-
-    if (localStorage.getItem(PWA_INSTALLED_KEY) === "1") {
-      setIsPwaInstalled(true);
-      return;
-    }
+    let hasRelatedInstalledApp = false;
 
     if (typeof navigator.getInstalledRelatedApps === "function") {
       try {
         const relatedApps = await navigator.getInstalledRelatedApps();
         if (Array.isArray(relatedApps) && relatedApps.length > 0) {
-          localStorage.setItem(PWA_INSTALLED_KEY, "1");
-          setIsPwaInstalled(true);
-          return;
+          hasRelatedInstalledApp = true;
         }
       } catch (_err) {
         // Ignore and continue fallback checks.
       }
     }
 
-    setIsPwaInstalled(false);
+    setIsPwaInstalled(isStandaloneMode || hasRelatedInstalledApp);
   };
 
   useEffect(() => {
@@ -99,7 +87,6 @@ const Header = () => {
     };
 
     const onAppInstalled = () => {
-      localStorage.setItem(PWA_INSTALLED_KEY, "1");
       setIsPwaInstalled(true);
       setInstallPromptEvent(null);
     };
@@ -147,18 +134,24 @@ const Header = () => {
           </div>
 
           <div className="d-flex align-items-center gap-1">
-            {!!installPromptEvent && !isPwaInstalled && (
+            {!isPwaInstalled && (
               <Button2
                 icon={<MdInstallMobile />}
                 working={false}
                 text={t("app_install_btn")}
                 class="btn-primary text-white rounded-3"
                 action={async () => {
-                  await installPromptEvent.prompt();
-                  if (installPromptEvent.userChoice) {
-                    await installPromptEvent.userChoice;
+                  if (installPromptEvent) {
+                    await installPromptEvent.prompt();
+                    if (installPromptEvent.userChoice) {
+                      await installPromptEvent.userChoice;
+                    }
+                    setInstallPromptEvent(null);
+                  } else {
+                    toastr.info(
+                      "Open Chrome menu and tap 'Add to Home screen' to install."
+                    );
                   }
-                  setInstallPromptEvent(null);
                   checkInstallStatus();
                 }}
               />
