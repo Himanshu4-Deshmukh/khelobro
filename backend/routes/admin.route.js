@@ -44,6 +44,7 @@ import {
   verifyLogin,
   addTournament,
   cloneTournament,
+  deleteTournament,
   endTournament,
   fetchTournament,
   fetchTournaments,
@@ -131,5 +132,6 @@ router.route("/fetchTournaments").post(auth, fetchTournaments);
 router.route("/fetchTournament").post(auth, fetchTournament);
 router.route("/endTournament").post(auth, endTournament);
 router.route("/cloneTournament").post(auth, cloneTournament);
+router.route("/deleteTournament").post(auth, deleteTournament);
 
 export default router;

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatTimestamp, singleFetcher } from "../../../utils/api.manager";
 import { useNavigate, useParams } from "react-router-dom";
-import { MatchInfo } from "../elements/MatchInfo";
 import { FaRegArrowAltCircleLeft } from "react-icons/fa";
 import { useSelector } from "react-redux";
 
@@ -53,7 +52,7 @@ export const OpenTournament = () => {
             <div className="border bg-white shadow rounded opacity-75">
               <div className="bg-dark fw-bold d-flex justify-content-between rounded-top px-2 py-1 small  text-white">
                 <div>ENTRY FEE : ₹{match.entryFee}</div>
-                <div>PRIZE POOL : ₹{match.prizePool}</div>
+                <div>Pool Prize : ₹{match.prizePool}</div>
               </div>
 
               <div className="d-flex justify-content-between flex-wrap gap-1 border-top p-2">
@@ -75,9 +74,8 @@ export const OpenTournament = () => {
                   </button>
 
                   <button
-                    className={`btn btn-sm p-0 p-1 px-2 m-0 xs-small ${
-                      match.status == "open" ? "btn-info" : ""
-                    } ${match.status == "cancelled" ? "btn-danger" : ""} 
+                    className={`btn btn-sm p-0 p-1 px-2 m-0 xs-small ${match.status == "open" ? "btn-info" : ""
+                      } ${match.status == "cancelled" ? "btn-danger" : ""} 
               ${match.status == "completed" ? "btn-success" : ""}
               ${match.status == "running" ? "btn-warning" : ""}
               `}
@@ -105,7 +103,7 @@ export const OpenTournament = () => {
                           () => {
                             fetchMatch();
                           },
-                          () => {}
+                          () => { }
                         );
                       }}
                       className="btn  btn-outline-success p-0 p-1 px-2 m-0 xs-small "
@@ -176,7 +174,7 @@ export const OpenTournament = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {match.leaderboard.map((score, index) => {
+                  {(match.leaderboard || []).map((score, index) => {
                     return (
                       <tr key={score.userId}>
                         <td className="">{index + 1}</td>

@@ -3,19 +3,8 @@ import { base } from "../../../utils/api.manager";
 import axios from "axios";
 import toastr from "toastr";
 
+// eslint-disable-next-line react/prop-types
 export const AddTournament = ({ setMenu }) => {
-  const permissions = [
-    "MANAGE USER",
-    "ADD TRANSACTION",
-    "CHAT SUPPORT",
-    "MANAGE DEPOSIT",
-    "MANAGE WITHDRAW",
-    "PENDING RESULT",
-    "CANCEL REQUEST",
-    "MANAGE CONFLICT",
-    "MANAGE MATCH",
-    "DASHBOARD REPORT",
-  ];
   const [working, setWorking] = useState(false);
   const [scoring, setScoring] = useState([
     { fromRank: "", toRank: "", reward: "" },
@@ -39,7 +28,6 @@ export const AddTournament = ({ setMenu }) => {
     console.log(scoring);
     setWorking(true);
     e.preventDefault();
-    const form = e.target;
     const data = {};
     data._token = localStorage.getItem("_token");
     data._deviceId = localStorage.getItem("_deviceId");
@@ -56,6 +44,7 @@ export const AddTournament = ({ setMenu }) => {
     });
 
     data["scoring"] = scoring;
+    data.status = "running";
 
     axios
       .post(base("/addNewTournament"), data)
@@ -124,9 +113,9 @@ export const AddTournament = ({ setMenu }) => {
               />
             </div>
 
-            {/* Prize Pool */}
+            {/* Pool Prize */}
             <div className="col-12 col-md-4 p-1">
-              <label className="small fw-bold">Prize Pool (₹)</label>
+              <label className="small fw-bold">Pool Prize (₹)</label>
               <input
                 type="number"
                 name="prizePool"
@@ -234,9 +223,8 @@ export const AddTournament = ({ setMenu }) => {
 
           {/* SUBMIT BUTTON */}
           <button
-            className={`btn btn-primary btn-sm w-100 mt-3 ${
-              working ? "disabled" : ""
-            }`}
+            className={`btn btn-primary btn-sm w-100 mt-3 ${working ? "disabled" : ""
+              }`}
           >
             CREATE TOURNAMENT
           </button>

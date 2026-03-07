@@ -5516,23 +5516,26 @@ export const updateGame = async (req, res) => {
       });
     }
 
+    // Build the update object - only include optional fields if they are
+    // explicitly provided in the request (prevents zeroing out fields for
+    // games like Ludo League that don't have those form inputs)
+    const updateFields = {
+      guidehindi: req.body.hindi,
+      guideenglish: req.body.english,
+      status: req.body.status,
+      updatedAt: new Date(),
+    };
+    if (req.body.multipleOf !== undefined) updateFields.multipleOf = req.body.multipleOf;
+    if (req.body.minAmount !== undefined) updateFields.minAmount = req.body.minAmount;
+    if (req.body.maxAmount !== undefined) updateFields.maxAmount = req.body.maxAmount;
+    if (req.body.amounts !== undefined) updateFields.amounts = req.body.amounts;
+    if (req.body.duration !== undefined) updateFields.duration = req.body.duration;
+    if (req.body.durationLite !== undefined) updateFields.durationLite = req.body.durationLite;
+    if (req.body.moves !== undefined) updateFields.moves = req.body.moves;
+
     await Game.updateOne(
       { _id: req.body._id },
-      {
-        $set: {
-          guidehindi: req.body.hindi,
-          guideenglish: req.body.english,
-          status: req.body.status,
-          multipleOf: req.body.multipleOf ?? 0,
-          minAmount: req.body.minAmount ?? 0,
-          maxAmount: req.body.maxAmount ?? 0,
-          amounts: req.body.amounts ?? 0,
-          duration: req.body.duration ?? 0,
-          durationLite: req.body.durationLite ?? 0,
-          moves: req.body.moves ?? 0,
-          updatedAt: new Date(),
-        },
-      }
+      { $set: updateFields }
     );
 
     await _log({
@@ -5849,7 +5852,7 @@ export const addTournament = async (req, res) => {
       totalAllowedEntries: Number(totalAllowedEntries),
       totalAllowedEntriesPerUser: Number(totalAllowedEntriesPerUser),
       scoring,
-      status: status || "draft",
+      status: status || "running",
     });
 
     await _log({
@@ -5897,9 +5900,62 @@ export const cloneTournament = async (req, res) => {
   }
 };
 
+export const deleteTournament = async (req, res) => {
+  try {
+    const tournamentId =
+      req.body.tournamentId || req.body?._id || req.body?.cond?._id;
+
+    if (!tournamentId) {
+      return res.json({ success: false, message: "Tournament id is required" });
+    }
+
+    const tournament = await Tournament.findOne({ _id: tournamentId }).lean();
+
+    if (!tournament) {
+      return res.json({ success: false, message: "Tournament not found" });
+    }
+
+    const linkedMatches = await TMatch.countDocuments({
+      tournamentId: String(tournament._id),
+    });
+
+    // Allow history cleanup for ended/completed tournaments.
+    // For non-completed tournaments, keep a safety check to avoid deleting
+    // active records that already have entries/matches.
+    if (linkedMatches > 0 && tournament.status !== "completed") {
+      return res.json({
+        success: false,
+        message:
+          "Only completed tournaments can be deleted after entries/matches are created.",
+      });
+    }
+
+    await Tournament.deleteOne({ _id: tournament._id });
+
+    await _log({
+      message: `${req.admin.emailId} deleted tournament: ${tournament.name}`,
+    });
+
+    return res.json({
+      success: true,
+      message: "Tournament deleted successfully",
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.response ? error.response.data.message : error.message,
+    });
+  }
+};
+
 export const endTournament = async (req, res) => {
   try {
-    const { tournamentId } = req.body;
+    const tournamentId =
+      req.body.tournamentId || req.body?._id || req.body?.cond?._id;
+
+    if (!tournamentId) {
+      return res.json({ success: false, message: "Tournament id is required" });
+    }
 
     const tournament = await Tournament.findOneAndUpdate(
       { _id: tournamentId, status: "running" },
@@ -5950,7 +6006,12 @@ export const fetchTournaments = async (req, res) => {
 
 export const fetchTournament = async (req, res) => {
   try {
-    const { tournamentId } = req.body;
+    const tournamentId =
+      req.body.tournamentId || req.body?._id || req.body?.cond?._id;
+    if (!tournamentId) {
+      return res.json({ success: false, message: "Tournament id is required" });
+    }
+
     const tournament = await Tournament.findOne({ _id: tournamentId }).lean();
 
     if (!tournament) {

@@ -155,17 +155,15 @@ export const TMatch = () => {
 
           <div className="d-flex gap-2">
             <button
-              className={`btn btn-outline-dark ${
-                mode == 1 && "btn-dark text-white fw-bold"
-              } rounded-4 w-100`}
+              className={`btn btn-outline-dark ${mode == 1 && "btn-dark text-white fw-bold"
+                } rounded-4 w-100`}
               onClick={() => setMode(1)}
             >
               Tournament
             </button>
             <button
-              className={`btn btn-outline-dark ${
-                mode == 2 && "btn-dark text-white fw-bold"
-              } rounded-4 w-100`}
+              className={`btn btn-outline-dark ${mode == 2 && "btn-dark text-white fw-bold"
+                } rounded-4 w-100`}
               onClick={() => setMode(2)}
             >
               {match.status == "running" && "Leaderboard"}
@@ -198,14 +196,15 @@ export const TMatch = () => {
                 }}
               >
                 <div className="d-flex flex-column gap-3">
-                  {/* PRIZE POOL */}
+                  {/* Pool Prize */}
                   <div className="d-flex align-items-center gap-3">
                     <div>
                       <div style={{ fontSize: "11px", opacity: 0.6 }}>
-                        PRIZE POOL
+                        Pool Prize
                       </div>
                       <div className="fw-bold" style={{ fontSize: "24px" }}>
-                        ₹{match.firstPrize}
+                        {/* ₹{match.firstPrize} */}
+                        ₹{match.prizePool}
                       </div>
                     </div>
                   </div>
@@ -220,10 +219,9 @@ export const TMatch = () => {
                         <div
                           className="progress-bar bg-warning"
                           style={{
-                            width: `${
-                              (match.totalJoined / match.totalAllowedEntries) *
+                            width: `${(match.totalJoined / match.totalAllowedEntries) *
                               100
-                            }%`,
+                              }%`,
                           }}
                         ></div>
                       </div>

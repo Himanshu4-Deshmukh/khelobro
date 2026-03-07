@@ -1,5 +1,5 @@
 import { SidebarNavItem } from "../elements/SidebarNavItem";
-import { LuDice6, LuLayoutTemplate, LuUserRoundCog } from "react-icons/lu";
+import { LuLayoutTemplate, LuUserRoundCog } from "react-icons/lu";
 import { MdOutlineAdminPanelSettings, MdOutlineSettings } from "react-icons/md";
 import { GrUserAdmin } from "react-icons/gr";
 import { IoMdChatboxes, IoMdInformationCircleOutline } from "react-icons/io";
@@ -88,11 +88,6 @@ export const Sidebar = () => {
                     icon={<CgDice6 />}
                     to="/manage-1token-matches"
                     title="Classic 1 Token Matches"
-                  />
-                                    <SidebarNavItem
-                    icon={<FaPeopleGroup />}
-                    to="/manage-tournaments"
-                    title="Manage Tournaments"
                   />
                   <SidebarNavItem
                     icon={<FaPeopleGroup />}

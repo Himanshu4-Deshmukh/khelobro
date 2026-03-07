@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import {
   base,
-  fetcher,
   formatTimestamp,
   singleFetcher,
 } from "../../../utils/api.manager";
-import { AdminListItem } from "./AdminListItem";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import toastr from "toastr";
 
 export const Tournaments = () => {
   const [matches, setMatches] = useState([]);
-  const [page, setPage] = useState(1);
+  const [workingTournamentId, setWorkingTournamentId] = useState(null);
+
+  const fetchAllTournaments = () => {
+    singleFetcher("/fetchTournaments", {}, setMatches);
+  };
 
   const clone = function (tid) {
+    setWorkingTournamentId(tid);
+
     const data = {};
     data._token = localStorage.getItem("_token");
     data._deviceId = localStorage.getItem("_deviceId");
@@ -24,20 +28,53 @@ export const Tournaments = () => {
       .post(base("/cloneTournament"), data)
       .then(function (response) {
         if (response.data.success) {
-          toastr.success(response.data.message);
-          setMatches([]);
-          singleFetcher("/fetchTournaments", {}, setMatches);
+          toastr.success(response.data.message || "Tournament copied");
+          fetchAllTournaments();
         } else {
           toastr.error(response.data.message);
         }
+        setWorkingTournamentId(null);
       })
       .catch(function (error) {
         toastr.error(error.response ? error.response.data : error.message);
+        setWorkingTournamentId(null);
+      });
+  };
+
+  const deleteTournament = function (tid) {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this tournament?"
+    );
+    if (!confirmDelete) {
+      return;
+    }
+
+    setWorkingTournamentId(tid);
+
+    const data = {};
+    data._token = localStorage.getItem("_token");
+    data._deviceId = localStorage.getItem("_deviceId");
+    data.tournamentId = tid;
+
+    axios
+      .post(base("/deleteTournament"), data)
+      .then(function (response) {
+        if (response.data.success) {
+          toastr.success(response.data.message || "Tournament deleted");
+          fetchAllTournaments();
+        } else {
+          toastr.error(response.data.message);
+        }
+        setWorkingTournamentId(null);
+      })
+      .catch(function (error) {
+        toastr.error(error.response ? error.response.data : error.message);
+        setWorkingTournamentId(null);
       });
   };
 
   useEffect(() => {
-    singleFetcher("/fetchTournaments", {}, setMatches);
+    fetchAllTournaments();
   }, []);
   return (
     <>
@@ -92,12 +129,24 @@ export const Tournaments = () => {
 
                   <td>
                     <button
-                      className="btn btn-sm btn-warning mx-2"
+                      className={`btn btn-sm btn-warning mx-2 ${
+                        workingTournamentId === match._id ? "disabled" : ""
+                      }`}
                       onClick={() => {
                         clone(match._id);
                       }}
                     >
                       Copy
+                    </button>
+                    <button
+                      className={`btn btn-sm btn-danger mx-2 ${
+                        workingTournamentId === match._id ? "disabled" : ""
+                      }`}
+                      onClick={() => {
+                        deleteTournament(match._id);
+                      }}
+                    >
+                      Delete
                     </button>
                     <Link
                       to={`/open-tournament/${match._id}`}

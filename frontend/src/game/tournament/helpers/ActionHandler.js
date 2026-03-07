@@ -71,62 +71,11 @@ export const ActionHandler = (scene) => {
     RunDiceAction(scene);
   });
 
-  scene.tokensExpanded = false;
-  scene.bg = scene.add
-    .image(190, 200, "safer")
-    .setVisible(false)
-    .setDepth(999999)
-    .setOrigin(0, 0.5);
-
   scene.gotiClicked = false;
 
   scene.allGotis.forEach((goti) => {
     goti.setInteractive();
     goti.on("pointerdown", () => {
-      // console.log("goti clicked");
-      const total_tokens_on_same_location = [];
-
-      scene.allGotis.forEach((token) => {
-        if (
-          token.originalX == goti.originalX &&
-          token.originalY == goti.originalY
-        ) {
-          total_tokens_on_same_location.push(token);
-        }
-      });
-
-      if (
-        total_tokens_on_same_location.length > 1 &&
-        scene.tokensExpanded == false
-      ) {
-        scene.tokensExpanded = true;
-        //console.log("this location have more tokens than 1");
-        //console.log(total_tokens_on_same_location);
-
-        // If there are overlapping tokens
-        const spacing = 70; // Adjust spacing between tokens
-        const startX =
-          total_tokens_on_same_location[0].originalX -
-          ((total_tokens_on_same_location.length - 1) * spacing) / 2;
-
-        scene.bg.x = startX - 35 * total_tokens_on_same_location.length;
-        scene.bg.y = total_tokens_on_same_location[0].originalY;
-        scene.bg.displayWidth = 115 * total_tokens_on_same_location.length;
-        scene.bg.setVisible(true);
-        total_tokens_on_same_location.forEach((token, index) => {
-          token.setScale(1); // Scale down overlapping tokens
-          token.x = startX + index * spacing; // Visually offset x
-          token.y = token.originalY; // Keep y consistent with original
-          token.setDepth(1000000);
-        });
-        return;
-      } else {
-      }
-
-      scene.tokensExpanded = false;
-      scene.bg.setVisible(false);
-
-      //goti old action method
       if (
         scene.playerIsMoving ||
         scene.color !== scene.currentColor ||
@@ -147,8 +96,6 @@ export const ActionHandler = (scene) => {
         room_code: scene.roomCode,
         diceValue: scene.diceValue,
       });
-
-      //goti old action method ended
     });
   });
 
@@ -182,8 +129,6 @@ export const ActionHandler = (scene) => {
     const diceValue = res.value ?? res.diceValue;
     const goti = scene.gotis[`${res.color}${res.index}`];
     let stepCount = 1;
-    scene.tokensExpanded = false;
-    scene.bg.setVisible(false);
     scene._moveref = setInterval(() => {
       if (stepCount > diceValue) {
         clearInterval(scene._moveref);

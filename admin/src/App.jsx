@@ -354,7 +354,7 @@
 // };
 
 
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ChatSupport } from "./assets/components/pages/ChatSupport";
 import { Login } from "./assets/components/pages/Login";
 import { Dashboard } from "./assets/components/pages/Dashboard";
@@ -452,7 +452,6 @@ export const App = () => {
       if (socket) socket.disconnect();
     };
   }, []);
-  const navigate = useNavigate();
   return (
     <>
       <Routes>
@@ -555,14 +554,6 @@ export const App = () => {
             element={
               <ProtectedRoute isAuth={isAuth}>
                 <ManageAdmins />
-              </ProtectedRoute>
-            }
-          />
- <Route
-            path="manage-tournaments"
-            element={
-              <ProtectedRoute isAuth={isAuth}>
-                <ManageTournaments />
               </ProtectedRoute>
             }
           />
@@ -683,15 +674,6 @@ export const App = () => {
             element={
               <ProtectedRoute isAuth={isAuth}>
                 <OpenMatch />
-              </ProtectedRoute>
-            }
-          />
-
-                    <Route
-            path="open-tournament/:matchId"
-            element={
-              <ProtectedRoute isAuth={isAuth}>
-                <OpenTournament />
               </ProtectedRoute>
             }
           />
