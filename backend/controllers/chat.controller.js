@@ -302,25 +302,6 @@ export const sendMessage = async (req, res) => {
         }
       );
     } else {
-      const senderId = req.userId;
-      const lastMessage = await Message.findOne({
-        $or: [
-          { senderId, isAdmin: false }, // last user message
-          { receiverId: senderId, isAdmin: true }, // last admin message
-        ],
-      }).sort({ createdAt: -1 });
-
-
-      if (lastMessage) {
-
-        if (!lastMessage.isAdmin) {
-          return res.status(400).json({
-            success: false,
-            message: "please wait for admin reply before sending a new message.",
-          });
-        }
-      }
-
 
 
       nm = await Message.create(newMsg);
